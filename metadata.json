@@ -1,0 +1,6 @@
+{
+  "name": "Ghanata Senior High School Portal",
+  "description": "Official portal for Ghanata Senior High School (Dodowa) featuring school history, leadership, founder tribute, student terminal and WASSCE results checker, and administrative developer portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

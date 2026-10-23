@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "SchoolInfo": {
+      "title": "School Information",
+      "description": "General school identity, mottos, logo, contact info, and settings",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "shortName": { "type": "string" },
+        "mottoLatin": { "type": "string" },
+        "mottoEnglish": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "campusAddress": { "type": "string" },
+        "officeHours": { "type": "string" },
+        "gpsCoordinates": { "type": "string" }
+      },
+      "required": ["name", "shortName"]
+    },
+    "StudentRecord": {
+      "title": "Student Record",
+      "description": "Student marks, reports, personal details, and terminal performance",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "program": { "type": "string" },
+        "form": { "type": "string" },
+        "term": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "marks": { "type": "object" },
+        "average": { "type": "number" },
+        "position": { "type": "string" }
+      },
+      "required": ["studentId", "fullName"]
+    },
+    "SchoolMedia": {
+      "title": "School Media",
+      "description": "Uploaded pictures, founder images, and audio fanfares / lyrics",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "url": { "type": "string" },
+        "uploadedAt": { "type": "string" }
+      },
+      "required": ["title", "url"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": { "$ref": "#/entities/SchoolInfo" },
+      "description": "Main school configuration document"
+    },
+    "/schools/{schoolId}/students/{studentId}": {
+      "schema": { "$ref": "#/entities/StudentRecord" },
+      "description": "Student records and marks collection"
+    },
+    "/schools/{schoolId}/media/{mediaId}": {
+      "schema": { "$ref": "#/entities/SchoolMedia" },
+      "description": "Uploaded pictures and audio collection"
+    }
+  }
+}
