@@ -77,8 +77,13 @@ export const ResultsChecker: React.FC = () => {
     window.print();
   };
 
+  // Live reactive active student record derived from SchoolContext state
+  const activeStudent = selectedStudent
+    ? (students.find(s => s.id === selectedStudent.id) || selectedStudent)
+    : null;
+
   const downloadPdfResult = async () => {
-    if (!selectedStudent) return;
+    if (!activeStudent) return;
     const element = document.getElementById('official-report-card');
     if (!element) return;
 
@@ -101,10 +106,10 @@ export const ResultsChecker: React.FC = () => {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const cleanName = selectedStudent.studentName.replace(/[^a-zA-Z0-9]/g, '_');
-      const cleanIndex = selectedStudent.indexNumber.replace(/[^a-zA-Z0-9]/g, '-');
+      const cleanName = activeStudent.studentName.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanIndex = activeStudent.indexNumber.replace(/[^a-zA-Z0-9]/g, '-');
       pdf.save(`Ghanata_SHS_${cleanName}_${cleanIndex}_Terminal_Result.pdf`);
-      showNotify(`Successfully downloaded PDF result slip for ${selectedStudent.studentName}!`);
+      showNotify(`Successfully downloaded PDF result slip for ${activeStudent.studentName}!`);
     } catch (err) {
       console.error('PDF generation error:', err);
       showNotify('PDF generation fallback: Click "Print Official Result Slip" and select "Save as PDF".');
@@ -114,7 +119,7 @@ export const ResultsChecker: React.FC = () => {
   };
 
   const downloadImageResult = async () => {
-    if (!selectedStudent) return;
+    if (!activeStudent) return;
     const element = document.getElementById('official-report-card');
     if (!element) return;
 
@@ -132,11 +137,11 @@ export const ResultsChecker: React.FC = () => {
 
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      const cleanName = selectedStudent.studentName.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanName = activeStudent.studentName.replace(/[^a-zA-Z0-9]/g, '_');
       link.href = image;
       link.download = `Ghanata_SHS_${cleanName}_Result_Slip.png`;
       link.click();
-      showNotify(`Downloaded PNG result slip image for ${selectedStudent.studentName}!`);
+      showNotify(`Downloaded PNG result slip image for ${activeStudent.studentName}!`);
     } catch (err) {
       console.error('Image generation error:', err);
       showNotify('Image export error. Please try downloading PDF.');
@@ -146,8 +151,8 @@ export const ResultsChecker: React.FC = () => {
   };
 
   const downloadCsvResult = () => {
-    if (!selectedStudent) return;
-    const s = selectedStudent;
+    if (!activeStudent) return;
+    const s = activeStudent;
     const lines = [
       `GHANATA SENIOR HIGH SCHOOL - OFFICIAL TERMINAL REPORT CARD`,
       `Student Name,${s.studentName}`,
@@ -191,11 +196,11 @@ export const ResultsChecker: React.FC = () => {
   });
 
   // Calculate overall student performance statistics
-  const coreSubjects = selectedStudent?.subjects.filter(s => s.isCore) || [];
-  const electiveSubjects = selectedStudent?.subjects.filter(s => !s.isCore) || [];
-  const totalScoreSum = selectedStudent?.subjects.reduce((acc, curr) => acc + curr.totalScore, 0) || 0;
-  const averageScore = selectedStudent && selectedStudent.subjects.length > 0
-    ? (totalScoreSum / selectedStudent.subjects.length).toFixed(1)
+  const coreSubjects = activeStudent?.subjects.filter(s => s.isCore) || [];
+  const electiveSubjects = activeStudent?.subjects.filter(s => !s.isCore) || [];
+  const totalScoreSum = activeStudent?.subjects.reduce((acc, curr) => acc + curr.totalScore, 0) || 0;
+  const averageScore = activeStudent && activeStudent.subjects.length > 0
+    ? (totalScoreSum / activeStudent.subjects.length).toFixed(1)
     : '0';
 
   // Available classes for dropdown
@@ -327,7 +332,7 @@ export const ResultsChecker: React.FC = () => {
         </div>
 
         {/* OFFICIAL RESULT SLIP / TERMINAL REPORT CARD */}
-        {selectedStudent ? (
+        {activeStudent ? (
           <div className="space-y-4">
             
             {/* Quick Print & Download Action Bar (Hidden when printing) */}
@@ -338,8 +343,8 @@ export const ResultsChecker: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>Result Actions: {selectedStudent.studentName}</span>
-                    <span className="font-mono text-xs text-yellow-300">({selectedStudent.indexNumber})</span>
+                    <span>Result Actions: {activeStudent.studentName}</span>
+                    <span className="font-mono text-xs text-yellow-300">({activeStudent.indexNumber})</span>
                   </h4>
                   <p className="text-[11px] text-stone-400">
                     Download official high-definition PDF, high-res PNG image, CSV raw data, or print directly.
@@ -429,10 +434,10 @@ export const ResultsChecker: React.FC = () => {
                 {/* Student Photo */}
                 <div className="sm:col-span-3 flex justify-center sm:justify-start">
                   <div className="w-28 h-32 rounded-lg overflow-hidden border-2 border-[#14532d] shadow-xs bg-stone-200 flex-shrink-0 flex items-center justify-center">
-                    {selectedStudent.photoUrl && selectedStudent.photoUrl.trim() !== '' ? (
+                    {activeStudent.photoUrl && activeStudent.photoUrl.trim() !== '' ? (
                       <img
-                        src={selectedStudent.photoUrl}
-                        alt={selectedStudent.studentName}
+                        src={activeStudent.photoUrl}
+                        alt={activeStudent.studentName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
@@ -450,39 +455,39 @@ export const ResultsChecker: React.FC = () => {
                 <div className="sm:col-span-9 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4 text-xs">
                   <div>
                     <span className="text-stone-500 font-medium block">Student Full Name:</span>
-                    <span className="font-bold text-stone-900 text-sm">{selectedStudent.studentName}</span>
+                    <span className="font-bold text-stone-900 text-sm">{activeStudent.studentName}</span>
                   </div>
                   <div>
                     <span className="text-stone-500 font-medium block">Index Number:</span>
-                    <span className="font-bold font-mono text-[#14532d] text-sm">{selectedStudent.indexNumber}</span>
+                    <span className="font-bold font-mono text-[#14532d] text-sm">{activeStudent.indexNumber}</span>
                   </div>
                   <div>
                     <span className="text-stone-500 font-medium block">Academic Program:</span>
-                    <span className="font-bold text-stone-900">{selectedStudent.program}</span>
+                    <span className="font-bold text-stone-900">{activeStudent.program}</span>
                   </div>
                   <div>
                     <span className="text-stone-500 font-medium block">Class / Form:</span>
-                    <span className="font-bold text-stone-900">{selectedStudent.classForm}</span>
+                    <span className="font-bold text-stone-900">{activeStudent.classForm}</span>
                   </div>
                   <div>
                     <span className="text-stone-500 font-medium block">Academic Year & Term:</span>
-                    <span className="font-bold text-stone-900">{selectedStudent.academicYear} · {selectedStudent.term}</span>
+                    <span className="font-bold text-stone-900">{activeStudent.academicYear} · {activeStudent.term}</span>
                   </div>
                   <div>
                     <span className="text-stone-500 font-medium block">School House:</span>
-                    <span className="font-bold text-stone-900">{selectedStudent.house}</span>
+                    <span className="font-bold text-stone-900">{activeStudent.house}</span>
                   </div>
                   
                   <div>
                     <span className="text-stone-500 font-medium block">Position in Class:</span>
                     <span className="font-bold text-emerald-800 text-sm">
-                      {selectedStudent.positionInClass} <span className="font-normal text-stone-500 text-xs">out of {selectedStudent.totalStudentsInClass}</span>
+                      {activeStudent.positionInClass} <span className="font-normal text-stone-500 text-xs">out of {activeStudent.totalStudentsInClass}</span>
                     </span>
                   </div>
                   <div>
                     <span className="text-stone-500 font-medium block">Promotion Status:</span>
                     <span className="font-bold text-emerald-700">
-                      {selectedStudent.promotedToNextClass ? '✓ Promoted / Good Standing' : 'Repeated'}
+                      {activeStudent.promotedToNextClass ? '✓ Promoted / Good Standing' : 'Repeated'}
                     </span>
                   </div>
                 </div>
@@ -515,7 +520,7 @@ export const ResultsChecker: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-200">
-                      {selectedStudent.subjects.map((subj, index) => {
+                      {activeStudent.subjects.map((subj, index) => {
                         const isEven = index % 2 === 0;
                         const isDistinction = subj.grade === 'A1' || subj.grade === 'B2';
                         return (
@@ -566,14 +571,14 @@ export const ResultsChecker: React.FC = () => {
               <div className="border-r border-stone-200">
                 <span className="text-[11px] font-semibold text-stone-500 uppercase block">Best 6 Aggregate:</span>
                 <span className="text-2xl font-bold font-mono text-[#14532d]">
-                  {selectedStudent.aggregate}
+                  {activeStudent.aggregate}
                 </span>
                 <span className="text-[10px] text-stone-400 block">(Grade Points)</span>
               </div>
               <div className="sm:border-r border-stone-200">
                 <span className="text-[11px] font-semibold text-stone-500 uppercase block">Grade Point Average:</span>
                 <span className="text-2xl font-bold font-mono text-yellow-700">
-                  {selectedStudent.gpa.toFixed(2)}
+                  {activeStudent.gpa.toFixed(2)}
                 </span>
                 <span className="text-[10px] text-stone-400 block">(Scale 4.0)</span>
               </div>
@@ -587,7 +592,7 @@ export const ResultsChecker: React.FC = () => {
               <div>
                 <span className="text-[11px] font-semibold text-stone-500 uppercase block">Class Standing:</span>
                 <span className="text-2xl font-bold font-mono text-stone-900">
-                  {selectedStudent.positionInClass}
+                  {activeStudent.positionInClass}
                 </span>
                 <span className="text-[10px] text-stone-400 block">Class Rank</span>
               </div>
@@ -599,13 +604,13 @@ export const ResultsChecker: React.FC = () => {
               <div className="bg-yellow-50/60 p-4 rounded-xl border border-yellow-200 text-xs">
                 <div className="font-semibold text-stone-900 mb-1 flex items-center justify-between">
                   <span className="text-[#14532d] font-bold">Headteacher's Assessment & Recommendation:</span>
-                  <span className="text-stone-500 font-normal font-mono">Date Published: {selectedStudent.publishedDate}</span>
+                  <span className="text-stone-500 font-normal font-mono">Date Published: {activeStudent.publishedDate}</span>
                 </div>
                 <p className="font-serif italic text-stone-800 mb-2">
-                  "{selectedStudent.headTeacherRemarks}"
+                  "{activeStudent.headTeacherRemarks}"
                 </p>
                 <div className="text-[11px] text-stone-600 font-medium">
-                  <strong>Student Conduct & Attitude:</strong> {selectedStudent.conductRemarks}
+                  <strong>Student Conduct & Attitude:</strong> {activeStudent.conductRemarks}
                 </div>
               </div>
             </div>

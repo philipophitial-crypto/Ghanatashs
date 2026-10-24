@@ -300,6 +300,37 @@ export const DeveloperPortal: React.FC = () => {
     showToast('School Crest, Motto, Vision, Mission, and Core Values updated live!');
   };
 
+  const handleAddCoreValue = () => {
+    const updated = [...identityForm.coreValues, 'New Core Value'];
+    setIdentityForm(prev => ({ ...prev, coreValues: updated }));
+    if (realTimeSync) {
+      updateSchoolInfo({ coreValues: updated });
+    }
+    showToast('Added new core value item.');
+  };
+
+  const handleUpdateCoreValue = (index: number, val: string) => {
+    const updated = [...identityForm.coreValues];
+    updated[index] = val;
+    setIdentityForm(prev => ({ ...prev, coreValues: updated }));
+    if (realTimeSync) {
+      updateSchoolInfo({ coreValues: updated });
+    }
+  };
+
+  const handleRemoveCoreValue = (index: number) => {
+    if (identityForm.coreValues.length <= 1) {
+      alert('At least one core value is required.');
+      return;
+    }
+    const updated = identityForm.coreValues.filter((_, i) => i !== index);
+    setIdentityForm(prev => ({ ...prev, coreValues: updated }));
+    if (realTimeSync) {
+      updateSchoolInfo({ coreValues: updated });
+    }
+    showToast('Removed core value.');
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1919,6 +1950,54 @@ export const DeveloperPortal: React.FC = () => {
                   onChange={(e) => handleIdentityChange('mission', e.target.value)}
                   className="w-full px-3 py-2 text-xs sm:text-sm border border-stone-300 rounded-lg focus:outline-none focus:border-[#14532d]"
                 />
+              </div>
+
+              {/* School Core Values Management Card */}
+              <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 pb-3">
+                  <div>
+                    <h3 className="font-heading text-sm font-bold text-stone-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-yellow-600" />
+                      <span>School Core Values & Institutional Pillars</span>
+                    </h3>
+                    <p className="text-xs text-stone-500">
+                      Manage the foundational principles displayed in the philosophy section on the Home Page and official documents.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddCoreValue}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-xs w-fit"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Core Value</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {identityForm.coreValues.map((val, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-stone-300">
+                      <span className="text-[11px] font-bold text-yellow-800 bg-yellow-100 px-2 py-0.5 rounded font-mono shrink-0">
+                        #{idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={(e) => handleUpdateCoreValue(idx, e.target.value)}
+                        placeholder="Enter core value (e.g., Discipline)..."
+                        className="w-full text-xs font-semibold text-stone-800 border-none focus:outline-none bg-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCoreValue(idx)}
+                        className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors shrink-0 cursor-pointer"
+                        title="Remove core value"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-4 border-t border-stone-200 flex justify-end">
