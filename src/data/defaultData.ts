@@ -207,7 +207,7 @@ export const DEFAULT_SCHOOL_INFO: SchoolInformation = {
   secondaryEmail: 'ghanatashsdodowa@gmail.com',
   phone: '+233 (0) 30 291 0422',
   secondaryPhone: '+233 (0) 24 456 7891',
-  officeHours: 'Mon – Fri: 7:30 AM – 4:30 PM GMT',
+  officeHours: 'Mon to Fri: 7:30 AM to 4:30 PM GMT',
   gpsCoordinates: 'Dodowa Valley Campus / Shai Hills Foot, Greater Accra',
   category: 'Category A Public Co-educational Senior High School',
   established: 1936,
@@ -238,9 +238,9 @@ export const DEFAULT_HEADTEACHER: HeadTeacherProfile = {
   title: 'Headmaster',
   salutation: 'Mr.',
   imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-  tenure: 'September 2020 – Present',
+  tenure: 'September 2020 to Present',
   qualification: 'M.Ed. Educational Leadership (UEW), B.Sc. Mathematics & Statistics (UCC), Dip. Ed.',
-  welcomeMessage: 'Welcome to the official online home of Ghanata Senior High School, Dodowa. For nearly nine decades, our school has remained a fortress of discipline, academic integrity, and holistic moral development. As we navigate the 21st century, our focus remains on nurturing well-rounded citizens who embody our founding motto, "Carpe Diem" — seizing every moment to achieve greatness. We invite parents, alumni, and prospective scholars to explore our programs, celebrate our students\' achievements, and partner with us in sustaining the great Ghanata legacy.',
+  welcomeMessage: 'Welcome to the official online home of Ghanata Senior High School, Dodowa. For nearly nine decades, our school has remained a fortress of discipline, academic integrity, and holistic moral development. As we navigate the 21st century, our focus remains on nurturing well-rounded citizens who embody our founding motto, "Carpe Diem" (seizing every moment to achieve greatness). We invite parents, alumni, and prospective scholars to explore our programs, celebrate our students\' achievements, and partner with us in sustaining the great Ghanata legacy.',
   email: 'headmaster@ghanatashs.edu.gh',
   phone: '+233 (0) 30 291 0422 (Ext. 101)',
   signatureUrl: 'https://api.iconify.design/fluent-emoji-flat:pen.svg'
@@ -249,7 +249,7 @@ export const DEFAULT_HEADTEACHER: HeadTeacherProfile = {
 export const DEFAULT_FOUNDER: FounderProfile = {
   name: 'Rev. Emmanuel Osabutey-Aguedze',
   title: 'Founder & Pioneer Principal',
-  yearsOfLife: '1902 – 1978',
+  yearsOfLife: '1902 to 1978',
   imageUrl: '/founder.jpg',
   foundingYear: 1936,
   originalName: 'Gold Coast Sub-Senior College',
@@ -614,7 +614,7 @@ export const DEFAULT_PTA_NOTICES = [
     content: 'Notice is hereby given to all parents and guardians of students in Ghanata Senior High School that the statutory General Parent-Teacher Association (PTA) meeting for the academic term will convene at the School Assembly Hall on Saturday, 22nd March 2025 at 9:00 AM prompt.\n\nAgenda items include:\n1. Opening devotion and welcome remarks by PTA Chairman.\n2. Address by the Headmaster on terminal academic performance and WASSCE readiness.\n3. Financial report and presentation of audited welfare accounts.\n4. Consideration of proposed campus infrastructure enhancement projects (new e-library and student clinic expansion).\n5. Open forum and election of Year 1 Parent Representatives.\n\nAll parents are urged to attend promptly as vital resolutions impacting your wards will be finalized.',
     priority: 'Urgent' as const,
     venue: 'Ghanata SHS Main Assembly Hall, Dodowa',
-    time: '9:00 AM – 1:00 PM GMT'
+    time: '9:00 AM to 1:00 PM GMT'
   },
   {
     id: 'pta-002',
@@ -626,7 +626,7 @@ export const DEFAULT_PTA_NOTICES = [
     content: 'The PTA Executive Committee expresses deep gratitude to all parents who have contributed towards the science laboratory refurbishment fund. Through your generous support, 45 modern digital microscopes and 30 desktop computers have arrived on campus.\n\nParents who are yet to fulfill their voluntary quota are kindly encouraged to deposit directly into the official Ghanata PTA Consolidated Account at GCB Bank Dodowa Branch or via the official MTN Mobile Money merchant terminal. Official receipts are issued at the Bursar\'s registry during visiting days.',
     priority: 'Important' as const,
     venue: 'GCB Bank Dodowa / School Bursar Office',
-    time: 'Weekdays 8:00 AM – 3:30 PM'
+    time: 'Weekdays 8:00 AM to 3:30 PM'
   },
   {
     id: 'pta-003',
@@ -638,7 +638,7 @@ export const DEFAULT_PTA_NOTICES = [
     content: 'The Guidance and Counseling Department, in conjunction with the PTA Academic Committee, invites all final-year parents to a 2-hour interactive symposium. Heads of Science, Arts, Business, Home Economics, and Visual Arts will be available to present diagnostic analysis of recent mock results and recommend targeted home support interventions before the upcoming WAEC final examinations.',
     priority: 'Normal' as const,
     venue: 'Ghanata SHS Dining Hall',
-    time: '10:00 AM – 12:30 PM'
+    time: '10:00 AM to 12:30 PM'
   },
   {
     id: 'pta-004',

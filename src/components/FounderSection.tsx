@@ -84,13 +84,13 @@ export const FounderSection: React.FC = () => {
           <div className="lg:col-span-7 space-y-6">
             
             {/* Quote Box */}
-            <div className="bg-amber-950/40 border-l-4 border-amber-500 rounded-r-xl p-5 relative">
+            <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-6 relative">
               <Quote className="w-8 h-8 text-amber-400/40 absolute top-3 right-3" />
               <p className="text-base sm:text-lg font-academic italic text-amber-100 leading-relaxed">
                 {founder.quote}
               </p>
               <p className="text-xs font-heading font-semibold text-amber-400 mt-3 text-right">
-                — Rev. Emmanuel Osabutey-Aguedze
+                · Rev. Emmanuel Osabutey-Aguedze
               </p>
             </div>
 

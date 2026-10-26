@@ -181,7 +181,7 @@ export const DeveloperPortal: React.FC = () => {
     secondaryEmail: schoolInfo.secondaryEmail,
     phone: schoolInfo.phone,
     secondaryPhone: schoolInfo.secondaryPhone,
-    officeHours: schoolInfo.officeHours || 'Mon – Fri: 7:30 AM – 4:30 PM GMT',
+    officeHours: schoolInfo.officeHours || 'Mon to Fri: 7:30 AM to 4:30 PM GMT',
     gpsCoordinates: schoolInfo.gpsCoordinates || 'Dodowa Valley Campus / Shai Hills Foot, Greater Accra'
   });
 
@@ -277,7 +277,7 @@ export const DeveloperPortal: React.FC = () => {
       secondaryEmail: DEFAULT_SCHOOL_INFO.secondaryEmail,
       phone: DEFAULT_SCHOOL_INFO.phone,
       secondaryPhone: DEFAULT_SCHOOL_INFO.secondaryPhone,
-      officeHours: DEFAULT_SCHOOL_INFO.officeHours || 'Mon – Fri: 7:30 AM – 4:30 PM GMT',
+      officeHours: DEFAULT_SCHOOL_INFO.officeHours || 'Mon to Fri: 7:30 AM to 4:30 PM GMT',
       gpsCoordinates: DEFAULT_SCHOOL_INFO.gpsCoordinates || 'Dodowa Valley Campus / Shai Hills Foot, Greater Accra'
     };
     setContactForm(defaults);
@@ -764,7 +764,7 @@ export const DeveloperPortal: React.FC = () => {
                     secondaryEmail: DEFAULT_SCHOOL_INFO.secondaryEmail,
                     phone: DEFAULT_SCHOOL_INFO.phone,
                     secondaryPhone: DEFAULT_SCHOOL_INFO.secondaryPhone,
-                    officeHours: DEFAULT_SCHOOL_INFO.officeHours || 'Mon – Fri: 7:30 AM – 4:30 PM GMT',
+                    officeHours: DEFAULT_SCHOOL_INFO.officeHours || 'Mon to Fri: 7:30 AM to 4:30 PM GMT',
                     gpsCoordinates: DEFAULT_SCHOOL_INFO.gpsCoordinates || 'Dodowa Valley Campus / Shai Hills Foot, Greater Accra'
                   });
                   setFounderForm({ ...DEFAULT_FOUNDER });
@@ -1329,7 +1329,7 @@ export const DeveloperPortal: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    Years of Life (e.g. 1902 – 1978)
+                    Years of Life (e.g. 1902 to 1978)
                   </label>
                   <input
                     type="text"

@@ -59,7 +59,7 @@ export const Hero: React.FC = () => {
                 <span className="text-yellow-400">SENIOR HIGH SCHOOL</span>
               </h1>
               <p className="text-xl sm:text-2xl font-academic italic text-yellow-100/90 font-medium">
-                "{schoolInfo.mottoLatin}" — <span className="font-sans not-italic text-stone-200 text-lg">{schoolInfo.mottoEnglish}</span>
+                "{schoolInfo.mottoLatin}" · <span className="font-sans not-italic text-stone-200 text-lg">{schoolInfo.mottoEnglish}</span>
               </p>
             </div>
 

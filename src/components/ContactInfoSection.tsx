@@ -110,7 +110,7 @@ export const ContactInfoSection: React.FC = () => {
                   
                   <div className="mt-3 pt-3 border-t border-stone-100 flex items-center gap-2 text-xs text-stone-500">
                     <Clock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                    <span>Office Hours: {schoolInfo.officeHours || 'Mon – Fri (7:30 AM – 4:30 PM GMT)'}</span>
+                    <span>Office Hours: {schoolInfo.officeHours || 'Mon to Fri (7:30 AM to 4:30 PM GMT)'}</span>
                   </div>
                 </div>
               </div>

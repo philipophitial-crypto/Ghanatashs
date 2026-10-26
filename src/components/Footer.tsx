@@ -57,7 +57,7 @@ export const Footer: React.FC = () => {
             </p>
 
             <div className="pt-2 text-xs text-yellow-300 font-serif italic">
-              "{schoolInfo.mottoLatin}" — {schoolInfo.mottoEnglish}
+              "{schoolInfo.mottoLatin}" · {schoolInfo.mottoEnglish}
             </div>
 
             {/* Founder & Headteacher quick reference */}

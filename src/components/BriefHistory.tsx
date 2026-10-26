@@ -49,7 +49,7 @@ export const BriefHistory: React.FC = () => {
               Brief History of Ghanata SHS
             </h2>
             <p className="text-stone-600 font-academic italic text-sm sm:text-base mt-1">
-              From Adidome to the foot of the Shai Hills in Dodowa — nearly nine decades of scholastic distinction.
+              From Adidome to the foot of the Shai Hills in Dodowa · nearly nine decades of scholastic distinction.
             </p>
           </div>
 
@@ -57,7 +57,7 @@ export const BriefHistory: React.FC = () => {
             <SchoolCrest size="sm" />
             <div>
               <div className="text-xs font-bold text-stone-900 uppercase">Institutional Roots</div>
-              <div className="text-[11px] text-yellow-800 font-serif font-semibold">1936 — Present</div>
+              <div className="text-[11px] text-yellow-800 font-serif font-semibold">1936 to Present</div>
             </div>
           </div>
         </div>

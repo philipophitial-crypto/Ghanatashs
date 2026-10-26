@@ -280,12 +280,12 @@ export const ResultsChecker: React.FC = () => {
                 className="w-full px-3 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-lg focus:outline-none focus:border-[#14532d] bg-stone-50 font-medium"
               >
                 <option value="All">All Courses (6 Courses)</option>
-                <option value="General Art">General Art (GArt 1 - 15)</option>
-                <option value="Visual Art">Visual Art (V Art 1 - 5)</option>
-                <option value="Business">Business (B1 - B5)</option>
-                <option value="Home Economics">Home Economics (H1 - H5)</option>
-                <option value="Agric">Agric (Agric 1 - 3)</option>
-                <option value="Science">Science (Science 1 - 6)</option>
+                <option value="General Art">General Art (GArt 1 to 15)</option>
+                <option value="Visual Art">Visual Art (V Art 1 to 5)</option>
+                <option value="Business">Business (B1 to B5)</option>
+                <option value="Home Economics">Home Economics (H1 to H5)</option>
+                <option value="Agric">Agric (Agric 1 to 3)</option>
+                <option value="Science">Science (Science 1 to 6)</option>
               </select>
             </div>
 

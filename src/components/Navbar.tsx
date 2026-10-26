@@ -9,13 +9,11 @@ import {
   BookOpen, 
   Users, 
   Phone, 
-  Mail, 
-  MapPin,
   Home
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const { activeTab, setActiveTab, schoolInfo } = useSchool();
+  const { activeTab, setActiveTab } = useSchool();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -36,26 +34,6 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header className="sticky top-0 z-40 bg-white border-b border-stone-200 shadow-xs">
-        {/* Top institutional announcement strip */}
-        <div className="bg-[#14532d] text-yellow-100 text-xs py-1.5 px-3 sm:px-8 border-b border-yellow-600/30">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 text-yellow-100/90 text-[10px] sm:text-xs truncate">
-              <span className="flex items-center gap-1 flex-shrink-0">
-                <MapPin className="w-3 h-3 text-yellow-400" />
-                <span>Dodowa, Greater Accra</span>
-              </span>
-              <span className="hidden sm:inline text-yellow-400/40">|</span>
-              <span className="hidden sm:flex items-center gap-1 truncate">
-                <Mail className="w-3 h-3 text-yellow-400 flex-shrink-0" />
-                <span className="truncate">{schoolInfo.email}</span>
-              </span>
-            </div>
-            <div className="text-[10px] sm:text-xs font-mono text-yellow-300 font-semibold flex-shrink-0">
-              Est. 1936 · Carpe Diem
-            </div>
-          </div>
-        </div>
-
         {/* Main Header */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
@@ -175,7 +153,7 @@ export const Navbar: React.FC = () => {
                   onClick={() => handleNavClick(item.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-left transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-50 text-[#14532d] border-l-4 border-[#14532d]'
+                      ? 'bg-emerald-50 text-[#14532d] font-bold border border-emerald-200'
                       : 'text-stone-700 hover:bg-stone-100'
                   } ${item.highlight ? 'bg-yellow-50 text-[#14532d] border border-yellow-300' : ''}`}
                 >
@@ -218,7 +196,6 @@ export const Navbar: React.FC = () => {
         >
           <div className="relative">
             <FileText className={`w-5 h-5 mb-0.5 ${activeTab === 'results' ? 'text-[#14532d] stroke-[2.5]' : 'text-stone-600'}`} />
-            <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
           </div>
           <span>Results</span>
         </button>
