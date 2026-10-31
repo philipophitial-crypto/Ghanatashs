@@ -340,7 +340,12 @@ export const TeacherPortal: React.FC = () => {
 
   // Filter students roster
   const filteredRoster = students.filter(s => {
-    if (formLevelFilter !== 'All' && s.formLevel !== formLevelFilter) return false;
+    if (formLevelFilter === 'Archived') {
+      if (!s.isArchived && s.status !== 'Graduated') return false;
+    } else {
+      if (s.isArchived && formLevelFilter !== 'All') return false;
+      if (formLevelFilter !== 'All' && s.formLevel !== formLevelFilter) return false;
+    }
     if (semesterFilter !== 'All' && s.semester !== semesterFilter) return false;
     if (courseFilter !== 'All' && s.program !== courseFilter) return false;
     if (classFilter !== 'All' && s.classArm !== classFilter && s.classForm !== classFilter) return false;
@@ -574,6 +579,7 @@ export const TeacherPortal: React.FC = () => {
                   <option value="Form 1">Form 1</option>
                   <option value="Form 2">Form 2</option>
                   <option value="Form 3">Form 3</option>
+                  <option value="Archived">Graduated Alumni Archive</option>
                 </select>
               </div>
 

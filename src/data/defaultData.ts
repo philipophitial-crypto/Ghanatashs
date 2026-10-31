@@ -188,8 +188,8 @@ export const DEFAULT_SCHOOL_INFO: SchoolInformation = {
   mottoLatin: 'Carpe Diem',
   mottoEnglish: 'Seize the Opportunity',
   secondaryMotto: 'Enter to Learn, Depart to Serve',
-  vision: 'To be a premier center of secondary education in Ghana, fostering intellectual rigor, exemplary discipline, moral uprightness, and innovative leadership for national and global advancement.',
-  mission: 'To provide high-quality, holistic secondary education through dedicated teaching, state-of-the-art academic and technical mentorship, character development, and a culture of perseverance, ensuring every student discovers their highest potential.',
+  vision: 'To inspire and nurture academic excellence self-confidence and total discipline in learners by creating the enabling environment for teaching and learning',
+  mission: 'Develop the requisite potentials in every learner to be responsible individuals to society',
   briefHistory: [
     'Ghanata Senior High School was established on 2nd February, 1936 by the visionary Ghanaian educationist and cleric, the late Rev. Emmanuel Osabutey-Aguedze. The institution began in Adidome in the Volta Region under the name "Gold Coast Sub-Senior College", established out of a passionate desire to provide affordable, high-quality secondary education to young people who lacked access to colonial-era public colleges.',
     'In its pursuit of strategic growth and academic stability, the school relocated first to Koforidua and subsequently moved permanently to its sprawling, serene campus in Dodowa, within the Shai-Osudoku District of the Greater Accra Region in 1957.',

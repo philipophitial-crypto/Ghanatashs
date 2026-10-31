@@ -76,6 +76,8 @@ export const DeveloperPortal: React.FC = () => {
     ptaNotices, 
     addPtaNotice, 
     deletePtaNotice, 
+    clearAllPtaNotices,
+    promoteAllBatches,
     teacherPassword, 
     updateTeacherPassword, 
     isDevAuthenticated, 
@@ -97,6 +99,9 @@ export const DeveloperPortal: React.FC = () => {
   // Password gate state
   const [devPasswordInput, setDevPasswordInput] = useState('');
   const [devPasswordError, setDevPasswordError] = useState('');
+
+  // Batch Promotion state
+  const [nextAcademicYearInput, setNextAcademicYearInput] = useState('2025/2026');
 
   // Course & Class Manager state
   const [newCourseName, setNewCourseName] = useState('');
@@ -120,7 +125,8 @@ export const DeveloperPortal: React.FC = () => {
     | 'teacher-password'
     | 'supabase-sync'
     | 'firebase-sync'
-    | 'courses-classes';
+    | 'courses-classes'
+    | 'batch-promotions';
 
   const [activeTab, setActiveDevTab] = useState<DevTab>('contact-info');
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -957,6 +963,19 @@ export const DeveloperPortal: React.FC = () => {
           >
             <BookOpen className="w-4 h-4 text-yellow-400" />
             <span>Courses & Classes Manager</span>
+          </button>
+
+          <button
+            onClick={() => setActiveDevTab('batch-promotions')}
+            className={`px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer ${
+              activeTab === 'batch-promotions'
+                ? 'bg-[#14532d] text-white shadow-xs'
+                : 'bg-white text-stone-700 hover:bg-stone-200 border border-stone-200'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 text-yellow-300" />
+            <span>Batch Promotion & Alumni Archive</span>
+            <span className="text-[10px] bg-yellow-400 text-stone-950 px-1.5 py-0.2 rounded font-bold">Auto</span>
           </button>
 
         </div>
@@ -2648,15 +2667,31 @@ export const DeveloperPortal: React.FC = () => {
 
             {/* Existing Notices with Delete */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 border border-stone-200 shadow-xs space-y-4">
-              <div className="border-b border-stone-200 pb-3 flex items-center justify-between">
+              <div className="border-b border-stone-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-heading text-base font-bold text-stone-900">
                     Existing PTA Announcements ({ptaNotices.length})
                   </h3>
                   <p className="text-xs text-stone-500">
-                    Notices can be deleted or reviewed below.
+                    Manage, edit, or clear all official PTA announcements and security postings.
                   </p>
                 </div>
+                {ptaNotices.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to clear ALL PTA announcements and reset PTA security notices? This will remove all existing postings from the public PTA page.')) {
+                        clearAllPtaNotices();
+                        await syncToFirebaseAccount();
+                        showToast('Cleared all PTA announcements and reset PTA security records live!');
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-colors cursor-pointer w-fit"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Clear All PTA Notices & Security</span>
+                  </button>
+                )}
               </div>
 
               <div className="overflow-x-auto border border-stone-200 rounded-xl">
@@ -3258,6 +3293,251 @@ export const DeveloperPortal: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 13: BATCH PROMOTION & ALUMNI ARCHIVE SYSTEM */}
+        {activeTab === 'batch-promotions' && (
+          <div className="space-y-8">
+            {/* Header & Overview Card */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-stone-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-900 mb-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-yellow-700" />
+                    <span>Automated Academic Transition Protocol</span>
+                  </div>
+                  <h2 className="font-heading text-xl sm:text-2xl font-bold text-stone-900">
+                    Academic Year Batch Promotion & Alumni Archive Manager
+                  </h2>
+                  <p className="text-xs sm:text-sm text-stone-600 mt-1">
+                    When an academic year or batch completes, student records automatically transition according to official Ghanata SHS rules.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('results')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer w-fit"
+                >
+                  <Eye className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>View Public Results Page</span>
+                </button>
+              </div>
+
+              {/* Live Batch Transition Statistics */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                <div className="bg-emerald-50/80 border border-emerald-200 p-4 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                    Active Form 1 Students
+                  </span>
+                  <div className="text-2xl font-extrabold text-[#14532d] font-mono">
+                    {students.filter(s => !s.isArchived && s.formLevel === 'Form 1').length}
+                  </div>
+                  <p className="text-[11px] text-emerald-700 font-medium">
+                    Will advance to <strong>Form 2</strong>
+                  </p>
+                </div>
+
+                <div className="bg-blue-50/80 border border-blue-200 p-4 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider block">
+                    Active Form 2 Students
+                  </span>
+                  <div className="text-2xl font-extrabold text-blue-900 font-mono">
+                    {students.filter(s => !s.isArchived && s.formLevel === 'Form 2').length}
+                  </div>
+                  <p className="text-[11px] text-blue-700 font-medium">
+                    Will advance to <strong>Form 3</strong>
+                  </p>
+                </div>
+
+                <div className="bg-amber-50/80 border border-amber-200 p-4 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
+                    Active Form 3 Students
+                  </span>
+                  <div className="text-2xl font-extrabold text-amber-900 font-mono">
+                    {students.filter(s => !s.isArchived && s.formLevel === 'Form 3').length}
+                  </div>
+                  <p className="text-[11px] text-amber-800 font-medium">
+                    Will <strong>Graduate & Move to Archive</strong>
+                  </p>
+                </div>
+
+                <div className="bg-stone-100 border border-stone-300 p-4 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-stone-700 uppercase tracking-wider block">
+                    Graduated Alumni in Archive
+                  </span>
+                  <div className="text-2xl font-extrabold text-stone-900 font-mono">
+                    {students.filter(s => s.isArchived || s.status === 'Graduated').length}
+                  </div>
+                  <p className="text-[11px] text-stone-600 font-medium">
+                    Historical completed records stored
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Execute Promotion Action Box */}
+            <div className="bg-stone-900 text-white rounded-2xl p-6 sm:p-8 border border-stone-800 shadow-xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-400 text-stone-950 mb-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Annual Batch Promotion Execution</span>
+                  </div>
+                  <h3 className="font-heading text-lg sm:text-xl font-bold text-white">
+                    Promote All Batches to Next Academic Year
+                  </h3>
+                  <p className="text-xs text-stone-300 mt-0.5">
+                    Advances Form 1 & Form 2 students to their next form, and automatically moves Form 3 graduates into the Alumni Archive.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-yellow-300 mb-1">
+                      New Academic Session:
+                    </label>
+                    <input
+                      type="text"
+                      value={nextAcademicYearInput}
+                      onChange={(e) => setNextAcademicYearInput(e.target.value)}
+                      placeholder="2025/2026"
+                      className="px-3 py-1.5 bg-stone-800 text-white border border-stone-700 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-yellow-400"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const form3Count = students.filter(s => !s.isArchived && s.formLevel === 'Form 3').length;
+                      const activeCount = students.filter(s => !s.isArchived && (s.formLevel === 'Form 1' || s.formLevel === 'Form 2')).length;
+
+                      if (window.confirm(`Execute Annual Academic Transition for ${nextAcademicYearInput} Session?\n\n- ${activeCount} students (Form 1 & Form 2) will advance to their next form.\n- ${form3Count} Form 3 students will complete senior high school and move to the Archived Alumni Registry tagged with year completed.\n\nContinue?`)) {
+                        const result = promoteAllBatches(nextAcademicYearInput);
+                        await syncToFirebaseAccount();
+                        showToast(`Academic Year Transition Complete! Promoted ${result.promoted} students and archived ${result.archived} Form 3 graduates to the Alumni Registry for ${nextAcademicYearInput}.`);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-yellow-400 hover:bg-yellow-300 text-stone-950 font-extrabold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-lg active:scale-95 shrink-0"
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                    <span>Execute Batch Promotion</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-stone-800/80 rounded-xl p-4 border border-stone-700 text-xs text-stone-300 space-y-2">
+                <div className="font-bold text-yellow-300 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Rule Execution Summary:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-stone-300 text-[11px]">
+                  <li><strong>Form 1 students</strong> automatically advance to <strong>Form 2</strong> (`{nextAcademicYearInput}`).</li>
+                  <li><strong>Form 2 students</strong> automatically advance to <strong>Form 3</strong> (`{nextAcademicYearInput}`).</li>
+                  <li><strong>Form 3 students</strong> complete senior high school: moved to <strong>Archived Alumni Registry</strong> tagged with <strong>Year Completed</strong> and issued a permanent Alumni Transcript badge.</li>
+                  <li>All changes synchronize in real time to Supabase Primary Cloud & Firebase Secondary Backup.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Archived & Graduated Alumni Registry Table */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-stone-200 shadow-xs space-y-4">
+              <div className="border-b border-stone-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase tracking-widest bg-amber-100 px-2.5 py-0.5 rounded-full mb-1">
+                    <BookOpen className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Archived & Graduated Alumni Registry</span>
+                  </div>
+                  <h3 className="font-heading text-lg font-bold text-stone-900">
+                    Graduated Batch Records ({students.filter(s => s.isArchived || s.status === 'Graduated').length})
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Students who completed senior high school are archived here with their completion year recorded.
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-stone-200 rounded-xl">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-stone-100 text-stone-700 font-semibold border-b border-stone-200">
+                      <th className="p-3">Index Number</th>
+                      <th className="p-3">Full Name</th>
+                      <th className="p-3">Course / Program</th>
+                      <th className="p-3 text-center">Batch Completed</th>
+                      <th className="p-3 text-center">Status</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200">
+                    {students
+                      .filter(s => s.isArchived || s.status === 'Graduated')
+                      .map((st) => (
+                        <tr key={st.id} className="hover:bg-amber-50/40 transition-colors">
+                          <td className="p-3 font-mono font-bold text-[#14532d]">
+                            {st.indexNumber}
+                          </td>
+                          <td className="p-3 font-semibold text-stone-900">
+                            {st.studentName}
+                          </td>
+                          <td className="p-3 text-stone-600">
+                            {st.program}
+                          </td>
+                          <td className="p-3 text-center font-mono font-bold text-yellow-900">
+                            <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded text-[11px]">
+                              {st.yearCompleted || st.academicYear || 'Graduated'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
+                              Graduated Alumni
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setActiveResultStudentId(st.id);
+                                  setActiveTab('results');
+                                }}
+                                className="px-2.5 py-1 bg-[#14532d] text-white hover:bg-[#0b331c] rounded transition-colors text-[11px] font-bold cursor-pointer"
+                              >
+                                View Transcript
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm(`Un-archive record for ${st.studentName} and move back to active student roster?`)) {
+                                    updateStudentResult(st.id, { isArchived: false, status: 'Active' });
+                                    await syncToFirebaseAccount();
+                                    showToast(`Restored ${st.studentName} to active student list.`);
+                                  }
+                                }}
+                                className="px-2 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded text-[11px] font-medium cursor-pointer"
+                                title="Unarchive student"
+                              >
+                                Restore
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+
+                    {students.filter(s => s.isArchived || s.status === 'Graduated').length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-stone-400">
+                          <GraduationCap className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+                          <p className="font-bold text-stone-700">No Archived Alumni Records Yet</p>
+                          <p className="text-xs text-stone-500 mt-0.5">
+                            When Form 3 batches graduate using "Execute Batch Promotion", their completed terminal records will appear here.
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

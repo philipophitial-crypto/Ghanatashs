@@ -58,6 +58,9 @@ export interface StudentResult {
   headTeacherRemarks: string;
   promotedToNextClass: boolean;
   publishedDate: string;
+  isArchived?: boolean;
+  status?: 'Active' | 'Graduated' | 'Archived';
+  yearCompleted?: string;
 }
 
 export interface PtaNotice {

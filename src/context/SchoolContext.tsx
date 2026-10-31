@@ -25,7 +25,7 @@ import {
   deleteStudentFromSupabase,
   saveSingleStudentToSupabase
 } from '../services/supabaseClient';
-import { calculateClassPositions } from '../utils/studentUtils';
+import { calculateClassPositions, formatFullClass } from '../utils/studentUtils';
 
 interface SchoolContextType {
   schoolInfo: SchoolInfo;
@@ -41,6 +41,7 @@ interface SchoolContextType {
   ptaNotices: PtaNotice[];
   addPtaNotice: (notice: PtaNotice) => void;
   deletePtaNotice: (id: string) => void;
+  clearAllPtaNotices: () => void;
   teacherPassword: string;
   updateTeacherPassword: (pw: string) => void;
   isTeacherAuthenticated: boolean;
@@ -63,6 +64,7 @@ interface SchoolContextType {
     ptaNotices?: PtaNotice[];
     courseConfigs?: Record<string, CourseConfig>;
   }) => Promise<boolean>;
+  promoteAllBatches: (nextAcademicYear?: string) => { promoted: number; archived: number };
   courseConfigs: Record<string, CourseConfig>;
   addCourse: (courseKey: string, config: CourseConfig) => void;
   deleteCourse: (courseKey: string) => void;
@@ -84,6 +86,26 @@ const STORAGE_KEYS = {
   COURSES: 'ghanata_courses_v4'
 };
 
+function sanitizeSchoolInfo(info: Partial<SchoolInfo> | undefined): Partial<SchoolInfo> | undefined {
+  if (!info) return info;
+  let vision = info.vision;
+  let mission = info.mission;
+
+  if (!vision || vision.includes('premier center') || vision.includes('intellectual rigor')) {
+    vision = DEFAULT_SCHOOL_INFO.vision;
+  }
+
+  if (!mission || mission.includes('mentorship') || mission.includes('holistic secondary education')) {
+    mission = DEFAULT_SCHOOL_INFO.mission;
+  }
+
+  return {
+    ...info,
+    vision,
+    mission
+  };
+}
+
 export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>(() => {
     try {
@@ -93,7 +115,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (!parsed.anthem || !parsed.anthem.stanzas || !parsed.anthem.stanzas[0]?.includes("God's grace abide")) {
           parsed.anthem = DEFAULT_SCHOOL_INFO.anthem;
         }
-        return { ...DEFAULT_SCHOOL_INFO, ...parsed };
+        const sanitized = sanitizeSchoolInfo(parsed) as SchoolInfo;
+        return { ...DEFAULT_SCHOOL_INFO, ...sanitized };
       }
       return DEFAULT_SCHOOL_INFO;
     } catch {
@@ -181,7 +204,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     loadSchoolDataFromSupabase().then(supabaseData => {
       if (supabaseData) {
-        if (supabaseData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...supabaseData.schoolInfo }));
+        if (supabaseData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(supabaseData.schoolInfo) }));
         if (supabaseData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...supabaseData.founder }));
         if (supabaseData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...supabaseData.headTeacher }));
         if (supabaseData.students && supabaseData.students.length > 0) setStudents(calculateClassPositions(supabaseData.students));
@@ -195,16 +218,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       loadSchoolDataFromFirebase().then(remoteData => {
         if (remoteData) {
           if (remoteData.schoolInfo) {
+            const sanitizedRemote = sanitizeSchoolInfo(remoteData.schoolInfo);
             setSchoolInfo((prev: SchoolInfo) => ({
               ...prev,
-              ...remoteData.schoolInfo,
+              ...sanitizedRemote,
               anthem: {
                 ...(prev.anthem || DEFAULT_SCHOOL_INFO.anthem),
-                ...(remoteData.schoolInfo.anthem || {}),
-                stanzas: (remoteData.schoolInfo.anthem?.stanzas && remoteData.schoolInfo.anthem.stanzas.length > 0)
-                  ? remoteData.schoolInfo.anthem.stanzas
+                ...(sanitizedRemote?.anthem || {}),
+                stanzas: (sanitizedRemote?.anthem?.stanzas && sanitizedRemote.anthem.stanzas.length > 0)
+                  ? sanitizedRemote.anthem.stanzas
                   : (prev.anthem?.stanzas || DEFAULT_SCHOOL_INFO.anthem.stanzas),
-                title: remoteData.schoolInfo.anthem?.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
+                title: sanitizedRemote?.anthem?.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
               }
             }));
           }
@@ -227,7 +251,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (remoteData) {
         isRemoteUpdate.current = true;
         setTimeout(() => { isRemoteUpdate.current = false; }, 400);
-        if (remoteData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...remoteData.schoolInfo }));
+        if (remoteData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(remoteData.schoolInfo) }));
         if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
         if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
         if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
@@ -242,7 +266,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (remoteData && !getSupabaseConfig().isConfigured) {
         isRemoteUpdate.current = true;
         setTimeout(() => { isRemoteUpdate.current = false; }, 400);
-        if (remoteData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...remoteData.schoolInfo }));
+        if (remoteData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(remoteData.schoolInfo) }));
         if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
         if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
         if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
@@ -255,6 +279,19 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       unsubSupabase();
       unsubFirebase();
     };
+  }, []);
+
+  // Ensure cloud databases store the updated official Vision & Mission
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncToFirebaseAccount({
+        schoolInfo: {
+          vision: DEFAULT_SCHOOL_INFO.vision,
+          mission: DEFAULT_SCHOOL_INFO.mission
+        }
+      });
+    }, 1200);
+    return () => clearTimeout(timer);
   }, []);
 
   // Keep local storage synchronized as instant offline mirror
@@ -433,6 +470,82 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setPtaNotices(prev => prev.filter(n => n.id !== id));
   };
 
+  const clearAllPtaNotices = () => {
+    setPtaNotices([]);
+    setTimeout(() => {
+      syncToFirebaseAccount({ ptaNotices: [] });
+    }, 0);
+  };
+
+  const promoteAllBatches = (nextAcademicYear = '2025/2026'): { promoted: number; archived: number } => {
+    let promoted = 0;
+    let archived = 0;
+
+    setStudents(prev => {
+      const updated = prev.map(student => {
+        // Skip already archived/graduated students
+        if (student.isArchived || student.status === 'Graduated') {
+          return student;
+        }
+
+        const currentForm = student.formLevel;
+
+        if (currentForm === 'Form 3') {
+          // Form 3 batch completes senior high school -> moves to archive
+          archived++;
+          const graduationYear = student.academicYear || '2024/2025';
+          return {
+            ...student,
+            isArchived: true,
+            status: 'Graduated' as const,
+            yearCompleted: graduationYear,
+            headTeacherRemarks: `Graduated from Ghanata Senior High School (${graduationYear} Academic Batch). Wish you success in future endeavors.`,
+            promotedToNextClass: true,
+            publishedDate: new Date().toISOString().split('T')[0]
+          };
+        } else if (currentForm === 'Form 2') {
+          // Form 2 moves to Form 3
+          promoted++;
+          const nextForm = 'Form 3';
+          const newClassForm = formatFullClass(nextForm, student.classArm);
+          return {
+            ...student,
+            formLevel: 'Form 3' as const,
+            classForm: newClassForm,
+            academicYear: nextAcademicYear,
+            promotedToNextClass: true,
+            publishedDate: new Date().toISOString().split('T')[0]
+          };
+        } else if (currentForm === 'Form 1') {
+          // Form 1 moves to Form 2
+          promoted++;
+          const nextForm = 'Form 2';
+          const newClassForm = formatFullClass(nextForm, student.classArm);
+          return {
+            ...student,
+            formLevel: 'Form 2' as const,
+            classForm: newClassForm,
+            academicYear: nextAcademicYear,
+            promotedToNextClass: true,
+            publishedDate: new Date().toISOString().split('T')[0]
+          };
+        }
+
+        return student;
+      });
+
+      const recalculated = calculateClassPositions(updated);
+
+      setTimeout(() => {
+        syncToFirebaseAccount({ students: recalculated });
+      }, 0);
+
+      return recalculated;
+    });
+
+    return { promoted, archived };
+  };
+
   const updateTeacherPassword = (pw: string) => {
     setTeacherPasswordState(pw);
   };
@@ -552,6 +665,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ptaNotices,
         addPtaNotice,
         deletePtaNotice,
+        clearAllPtaNotices,
+        promoteAllBatches,
         teacherPassword,
         updateTeacherPassword,
         isTeacherAuthenticated,
