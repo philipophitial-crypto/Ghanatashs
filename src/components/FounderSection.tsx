@@ -42,7 +42,7 @@ export const FounderSection: React.FC = () => {
                   src={founder.imageUrl}
                   alt={founder.name}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-top filter grayscale contrast-110 hover:grayscale-0 transition-all duration-500"
+                  className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/founder.jpg';
                   }}

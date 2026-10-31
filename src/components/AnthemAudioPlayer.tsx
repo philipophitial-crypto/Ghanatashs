@@ -20,6 +20,7 @@ export const AnthemAudioPlayer: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(12.5);
   const [volume, setVolume] = useState(0.85);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
 
@@ -28,12 +29,16 @@ export const AnthemAudioPlayer: React.FC = () => {
   // Use developer uploaded audio if present, otherwise default to static fanfare
   const customAudioUrl = schoolInfo.anthem?.audioUrl;
   const audioFileName = schoolInfo.anthem?.audioFileName || 'Ghanata_Senior_High_School_Anthem.wav';
-  const isCustomAudio = Boolean(customAudioUrl && customAudioUrl !== 'stored_in_google_cloud');
 
   const [audioSrc, setAudioSrc] = useState<string>(
     customAudioUrl && customAudioUrl !== 'stored_in_google_cloud'
       ? customAudioUrl
       : '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav'
+  );
+
+  const isCustomAudio = Boolean(
+    (customAudioUrl && customAudioUrl !== '' && customAudioUrl !== '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav') ||
+    (audioSrc && !audioSrc.startsWith('/audio/') && !audioSrc.startsWith('/Ghanata'))
   );
 
   useEffect(() => {
@@ -160,7 +165,13 @@ export const AnthemAudioPlayer: React.FC = () => {
       <audio
         ref={audioRef}
         src={audioSrc}
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
+        onCanPlay={() => {
+          if (audioRef.current) {
+            audioRef.current.playbackRate = playbackRate;
+          }
+        }}
         onEnded={() => {
           setIsPlaying(false);
           setCurrentTime(0);
@@ -301,6 +312,29 @@ export const AnthemAudioPlayer: React.FC = () => {
 
         {/* Volume & Audio Format Links */}
         <div className="flex items-center gap-4">
+          {/* Playback Speed Controls */}
+          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/10 text-[10px]">
+            <span className="text-stone-400 font-bold px-1 uppercase">Speed:</span>
+            {[0.9, 1.0, 1.25, 1.5].map((rate) => (
+              <button
+                key={rate}
+                onClick={() => {
+                  setPlaybackRate(rate);
+                  if (audioRef.current) {
+                    audioRef.current.playbackRate = rate;
+                  }
+                }}
+                className={`px-1.5 py-0.5 rounded font-mono font-bold transition-all cursor-pointer ${
+                  playbackRate === rate
+                    ? 'bg-yellow-400 text-stone-950 shadow-xs'
+                    : 'text-stone-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {rate}x
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2">
             <button
               onClick={toggleMute}
