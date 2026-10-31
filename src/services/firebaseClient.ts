@@ -85,14 +85,8 @@ export async function saveAudioToFirestore(audioUrl: string, audioFileName?: str
       }, { merge: true });
     } else {
       const numChunks = Math.ceil(audioUrl.length / CHUNK_SIZE);
-      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'anthem'), {
-        audioFileName: audioFileName || 'Ghanata_Senior_High_School_Anthem.wav',
-        numChunks,
-        totalLength: audioUrl.length,
-        owner: 'philipophitial1@gmail.com',
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
 
+      // Write all audio chunks first so listeners don't read partial data
       for (let i = 0; i < numChunks; i++) {
         const chunk = audioUrl.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
         await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'anthem_chunks', String(i)), {
@@ -101,6 +95,15 @@ export async function saveAudioToFirestore(audioUrl: string, audioFileName?: str
           updatedAt: new Date().toISOString()
         }, { merge: true });
       }
+
+      // Then commit the pointer document so onSnapshot triggers once all chunks are ready
+      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'anthem'), {
+        audioFileName: audioFileName || 'Ghanata_Senior_High_School_Anthem.wav',
+        numChunks,
+        totalLength: audioUrl.length,
+        owner: 'philipophitial1@gmail.com',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
     }
     console.log('Audio safely saved and stored in Google Cloud Firestore for playback.');
   } catch (err) {

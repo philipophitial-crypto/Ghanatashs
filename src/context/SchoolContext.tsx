@@ -307,9 +307,45 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (remoteData) {
         isRemoteUpdate.current = true;
         setTimeout(() => { isRemoteUpdate.current = false; }, 400);
-        if (remoteData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(remoteData.schoolInfo) }));
-        if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
-        if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
+        if (remoteData.schoolInfo) {
+          setSchoolInfo((prev: SchoolInfo) => {
+            const sanitized = sanitizeSchoolInfo(remoteData.schoolInfo);
+            const mergedAnthem = remoteData.schoolInfo.anthem
+              ? {
+                  ...(prev.anthem || DEFAULT_SCHOOL_INFO.anthem),
+                  ...remoteData.schoolInfo.anthem,
+                  stanzas: (remoteData.schoolInfo.anthem.stanzas && remoteData.schoolInfo.anthem.stanzas.length > 0)
+                    ? remoteData.schoolInfo.anthem.stanzas
+                    : (prev.anthem?.stanzas || DEFAULT_SCHOOL_INFO.anthem.stanzas),
+                  title: remoteData.schoolInfo.anthem.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
+                }
+              : prev.anthem;
+
+            if (remoteData.schoolInfo.anthem?.audioUrl) {
+              setPersistentMedia('anthem_audio', remoteData.schoolInfo.anthem.audioUrl);
+              if (remoteData.schoolInfo.anthem.audioFileName) {
+                setPersistentMedia('anthem_filename', remoteData.schoolInfo.anthem.audioFileName);
+              }
+            }
+            if (remoteData.schoolInfo.logoUrl) {
+              setPersistentMedia('school_logo', remoteData.schoolInfo.logoUrl);
+            }
+
+            return {
+              ...prev,
+              ...sanitized,
+              ...(mergedAnthem ? { anthem: mergedAnthem } : {})
+            };
+          });
+        }
+        if (remoteData.founder) {
+          setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
+          if (remoteData.founder.imageUrl) setPersistentMedia('founder_portrait', remoteData.founder.imageUrl);
+        }
+        if (remoteData.headTeacher) {
+          setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
+          if (remoteData.headTeacher.imageUrl) setPersistentMedia('headteacher_photo', remoteData.headTeacher.imageUrl);
+        }
         if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
         if (remoteData.ptaNotices !== undefined && Array.isArray(remoteData.ptaNotices)) setPtaNotices(remoteData.ptaNotices);
         if (remoteData.courseConfigs && Object.keys(remoteData.courseConfigs).length > 0) setCourseConfigs(remoteData.courseConfigs);
@@ -317,14 +353,50 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     });
 
-    // Real-time Firebase subscription (active when Supabase is not configured)
+    // Real-time Firebase subscription (Active for ALL connected users for instant audio, logo, portrait, and notice synchronization!)
     const unsubFirebase = subscribeToSchoolData(remoteData => {
-      if (remoteData && !getSupabaseConfig().isConfigured) {
+      if (remoteData) {
         isRemoteUpdate.current = true;
         setTimeout(() => { isRemoteUpdate.current = false; }, 400);
-        if (remoteData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(remoteData.schoolInfo) }));
-        if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
-        if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
+        if (remoteData.schoolInfo) {
+          setSchoolInfo((prev: SchoolInfo) => {
+            const sanitized = sanitizeSchoolInfo(remoteData.schoolInfo);
+            const mergedAnthem = remoteData.schoolInfo.anthem
+              ? {
+                  ...(prev.anthem || DEFAULT_SCHOOL_INFO.anthem),
+                  ...remoteData.schoolInfo.anthem,
+                  stanzas: (remoteData.schoolInfo.anthem.stanzas && remoteData.schoolInfo.anthem.stanzas.length > 0)
+                    ? remoteData.schoolInfo.anthem.stanzas
+                    : (prev.anthem?.stanzas || DEFAULT_SCHOOL_INFO.anthem.stanzas),
+                  title: remoteData.schoolInfo.anthem.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
+                }
+              : prev.anthem;
+
+            if (remoteData.schoolInfo.anthem?.audioUrl) {
+              setPersistentMedia('anthem_audio', remoteData.schoolInfo.anthem.audioUrl);
+              if (remoteData.schoolInfo.anthem.audioFileName) {
+                setPersistentMedia('anthem_filename', remoteData.schoolInfo.anthem.audioFileName);
+              }
+            }
+            if (remoteData.schoolInfo.logoUrl) {
+              setPersistentMedia('school_logo', remoteData.schoolInfo.logoUrl);
+            }
+
+            return {
+              ...prev,
+              ...sanitized,
+              ...(mergedAnthem ? { anthem: mergedAnthem } : {})
+            };
+          });
+        }
+        if (remoteData.founder) {
+          setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
+          if (remoteData.founder.imageUrl) setPersistentMedia('founder_portrait', remoteData.founder.imageUrl);
+        }
+        if (remoteData.headTeacher) {
+          setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
+          if (remoteData.headTeacher.imageUrl) setPersistentMedia('headteacher_photo', remoteData.headTeacher.imageUrl);
+        }
         if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
         if (remoteData.ptaNotices !== undefined && Array.isArray(remoteData.ptaNotices)) setPtaNotices(remoteData.ptaNotices);
         if (remoteData.courseConfigs && Object.keys(remoteData.courseConfigs).length > 0) setCourseConfigs(remoteData.courseConfigs);

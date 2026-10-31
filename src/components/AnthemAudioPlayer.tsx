@@ -147,10 +147,10 @@ export const AnthemAudioPlayer: React.FC = () => {
   };
 
   const handleDownload = () => {
-    if (customAudioUrl) {
+    if (audioSrc && audioSrc !== '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav') {
       const a = document.createElement('a');
-      a.href = customAudioUrl;
-      a.download = audioFileName;
+      a.href = audioSrc;
+      a.download = audioFileName || 'Ghanata_Senior_High_School_Anthem.wav';
       document.body.appendChild(a);
       a.click();
       setTimeout(() => document.body.removeChild(a), 500);
