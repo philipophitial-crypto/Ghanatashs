@@ -45,7 +45,13 @@ import {
 import { HeadTeacherProfile, StudentResult, SubjectScore, PtaNotice, FounderProfile } from '../types';
 import { DEFAULT_FOUNDER, DEFAULT_SCHOOL_INFO, DEFAULT_HEADTEACHER } from '../data/defaultData';
 import { compressImage } from '../utils/imageCompressor';
-import { saveFounderImageToFirestore, saveHeadTeacherImageToFirestore } from '../services/firebaseClient';
+import { 
+  saveFounderImageToFirestore, 
+  saveHeadTeacherImageToFirestore,
+  saveLogoToFirestore,
+  saveAudioToFirestore
+} from '../services/firebaseClient';
+import { setPersistentMedia, removePersistentMedia } from '../utils/mediaStorage';
 import { 
   getSupabaseConfig, 
   setSupabaseConfig, 
@@ -265,13 +271,15 @@ export const DeveloperPortal: React.FC = () => {
     }
   };
 
-  const handleSaveContact = (e: React.FormEvent) => {
+  const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
+    const updated = { ...schoolInfo, ...contactForm };
     updateSchoolInfo(contactForm);
-    showToast('Contact information, phone numbers, and secretariat addresses updated live!');
+    await syncToFirebaseAccount({ schoolInfo: updated });
+    showToast('Contact information, phone numbers, and secretariat addresses updated and saved live!');
   };
 
-  const handleResetContact = () => {
+  const handleResetContact = async () => {
     const defaults = {
       postOfficeBox: DEFAULT_SCHOOL_INFO.postOfficeBox,
       campusAddress: DEFAULT_SCHOOL_INFO.campusAddress || 'Off the Accra-Somanya Road, Dodowa, Shai-Osudoku District, Greater Accra Region, Ghana',
@@ -288,6 +296,7 @@ export const DeveloperPortal: React.FC = () => {
     };
     setContactForm(defaults);
     updateSchoolInfo(defaults);
+    await syncToFirebaseAccount({ schoolInfo: { ...schoolInfo, ...defaults } });
     showToast('Reset contact information to school secretariat defaults.');
   };
 
@@ -300,10 +309,16 @@ export const DeveloperPortal: React.FC = () => {
     }
   };
 
-  const handleSaveIdentity = (e: React.FormEvent) => {
+  const handleSaveIdentity = async (e: React.FormEvent) => {
     e.preventDefault();
+    const updated = { ...schoolInfo, ...identityForm };
     updateSchoolInfo(identityForm);
-    showToast('School Crest, Motto, Vision, Mission, and Core Values updated live!');
+    if (identityForm.logoUrl && identityForm.logoUrl.startsWith('data:')) {
+      await setPersistentMedia('school_logo', identityForm.logoUrl);
+      await saveLogoToFirestore(identityForm.logoUrl);
+    }
+    await syncToFirebaseAccount({ schoolInfo: updated });
+    showToast('School Crest, Motto, Vision, Mission, and Core Values updated and persisted live!');
   };
 
   const handleAddCoreValue = () => {
@@ -343,10 +358,12 @@ export const DeveloperPortal: React.FC = () => {
 
     try {
       showToast('Compressing and uploading official school logo...');
-      const compressed = await compressImage(file, 300, 0.85);
+      const compressed = await compressImage(file, 400, 0.9);
       setIdentityForm(prev => ({ ...prev, logoUrl: compressed }));
       updateSchoolInfo({ logoUrl: compressed });
-      await syncToFirebaseAccount();
+      await setPersistentMedia('school_logo', compressed);
+      await saveLogoToFirestore(compressed);
+      await syncToFirebaseAccount({ schoolInfo: { ...schoolInfo, logoUrl: compressed } });
       showToast('Official school logo uploaded, compressed, and broadcast live to all users!');
     } catch (err) {
       console.error('Logo upload error:', err);
@@ -354,10 +371,13 @@ export const DeveloperPortal: React.FC = () => {
     }
   };
 
-  const handleResetLogo = () => {
+  const handleResetLogo = async () => {
     const defaultLogo = '/logo.png';
     setIdentityForm(prev => ({ ...prev, logoUrl: defaultLogo }));
     updateSchoolInfo({ logoUrl: defaultLogo });
+    await removePersistentMedia('school_logo');
+    await saveLogoToFirestore(defaultLogo);
+    await syncToFirebaseAccount({ schoolInfo: { ...schoolInfo, logoUrl: defaultLogo } });
     showToast('Reset school logo to the official Ghanata Senior High School crest.');
   };
 
@@ -374,6 +394,7 @@ export const DeveloperPortal: React.FC = () => {
     e.preventDefault();
     updateFounder(founderForm);
     if (founderForm.imageUrl) {
+      await setPersistentMedia('founder_portrait', founderForm.imageUrl);
       await saveFounderImageToFirestore(founderForm.imageUrl);
     }
     await syncToFirebaseAccount({ founder: founderForm });
@@ -390,6 +411,7 @@ export const DeveloperPortal: React.FC = () => {
       const compressed = await compressImage(file, 500, 0.85);
       setFounderForm(prev => ({ ...prev, imageUrl: compressed }));
       updateFounder({ imageUrl: compressed });
+      await setPersistentMedia('founder_portrait', compressed);
       await saveFounderImageToFirestore(compressed);
       await syncToFirebaseAccount({ founder: { ...founder, imageUrl: compressed } });
       showToast('Founder portrait uploaded and synchronized to cloud storage for all users!');
@@ -402,6 +424,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleResetFounderImage = async () => {
     setFounderForm(prev => ({ ...prev, imageUrl: DEFAULT_FOUNDER.imageUrl }));
     updateFounder({ imageUrl: DEFAULT_FOUNDER.imageUrl });
+    await removePersistentMedia('founder_portrait');
     await saveFounderImageToFirestore(DEFAULT_FOUNDER.imageUrl);
     await syncToFirebaseAccount({ founder: { ...founder, imageUrl: DEFAULT_FOUNDER.imageUrl } });
     showToast('Reset founder portrait to historical archive default and updated cloud storage.');
@@ -425,39 +448,49 @@ export const DeveloperPortal: React.FC = () => {
         audioUrl: dataUrl,
         audioFileName: file.name
       }));
-      updateSchoolInfo({
+      const updatedSchoolInfo = {
+        ...schoolInfo,
         anthem: {
           ...schoolInfo.anthem,
           audioUrl: dataUrl,
           audioFileName: file.name
         }
-      });
-      showToast(`Storing audio fanfare "${file.name}" to Google Cloud...`);
-      await syncToFirebaseAccount();
-      showToast(`Ceremonial fanfare "${file.name}" safely stored in Google Cloud for playback!`);
+      };
+      updateSchoolInfo(updatedSchoolInfo);
+      showToast(`Storing audio fanfare "${file.name}" to Google Cloud and persistent storage...`);
+      await setPersistentMedia('anthem_audio', dataUrl);
+      await setPersistentMedia('anthem_filename', file.name);
+      await saveAudioToFirestore(dataUrl, file.name);
+      await syncToFirebaseAccount({ schoolInfo: updatedSchoolInfo });
+      showToast(`Ceremonial fanfare "${file.name}" safely stored for all users!`);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleResetAnthemAudio = () => {
+  const handleResetAnthemAudio = async () => {
     setAnthemForm(prev => ({
       ...prev,
       audioUrl: '',
       audioFileName: '',
       customFanfareNote: ''
     }));
-    updateSchoolInfo({
+    const updated = {
+      ...schoolInfo,
       anthem: {
         ...schoolInfo.anthem,
         audioUrl: undefined,
         audioFileName: undefined,
         customFanfareNote: undefined
       }
-    });
+    };
+    updateSchoolInfo(updated);
+    await removePersistentMedia('anthem_audio');
+    await removePersistentMedia('anthem_filename');
+    await syncToFirebaseAccount({ schoolInfo: updated });
     showToast('Ceremonial fanfare audio reset to official default fanfare.');
   };
 
-  const handleRestoreOfficialLyrics = () => {
+  const handleRestoreOfficialLyrics = async () => {
     const officialTitle = DEFAULT_SCHOOL_INFO.anthem.title;
     const officialStanzas = DEFAULT_SCHOOL_INFO.anthem.stanzas.join('\n\n');
     setAnthemForm(prev => ({
@@ -465,17 +498,20 @@ export const DeveloperPortal: React.FC = () => {
       title: officialTitle,
       stanzasText: officialStanzas
     }));
-    updateSchoolInfo({
+    const updated = {
+      ...schoolInfo,
       anthem: {
         ...schoolInfo.anthem,
         title: officialTitle,
         stanzas: DEFAULT_SCHOOL_INFO.anthem.stanzas
       }
-    });
+    };
+    updateSchoolInfo(updated);
+    await syncToFirebaseAccount({ schoolInfo: updated });
     showToast('Restored official Ghanata School Anthem lyrics in real time.');
   };
 
-  const handleSaveAnthem = (e: React.FormEvent) => {
+  const handleSaveAnthem = async (e: React.FormEvent) => {
     e.preventDefault();
     const stanzas = anthemForm.stanzasText
       .split(/\n\s*\n/)
@@ -487,13 +523,21 @@ export const DeveloperPortal: React.FC = () => {
       anthem: {
         title: anthemForm.title.trim() || 'Official Ghanata School Anthem',
         stanzas: stanzas.length > 0 ? stanzas : schoolInfo.anthem.stanzas,
-        audioUrl: anthemForm.audioUrl || undefined,
-        audioFileName: anthemForm.audioFileName || undefined,
+        audioUrl: anthemForm.audioUrl || schoolInfo.anthem?.audioUrl || undefined,
+        audioFileName: anthemForm.audioFileName || schoolInfo.anthem?.audioFileName || undefined,
         customFanfareNote: anthemForm.customFanfareNote || undefined
       }
     };
     updateSchoolInfo(updated);
-    showToast('School Anthem lyrics and ceremonial fanfare audio updated live!');
+    if (updated.anthem.audioUrl && updated.anthem.audioUrl.startsWith('data:')) {
+      await setPersistentMedia('anthem_audio', updated.anthem.audioUrl);
+      if (updated.anthem.audioFileName) {
+        await setPersistentMedia('anthem_filename', updated.anthem.audioFileName);
+      }
+      await saveAudioToFirestore(updated.anthem.audioUrl, updated.anthem.audioFileName);
+    }
+    await syncToFirebaseAccount({ schoolInfo: updated });
+    showToast('School Anthem lyrics and ceremonial fanfare audio updated and saved live!');
   };
 
   const togglePortalAudioPlay = () => {
@@ -528,6 +572,7 @@ export const DeveloperPortal: React.FC = () => {
       const compressed = await compressImage(file, 500, 0.85);
       setHtForm(prev => ({ ...prev, imageUrl: compressed }));
       updateHeadTeacher({ imageUrl: compressed });
+      await setPersistentMedia('headteacher_photo', compressed);
       await saveHeadTeacherImageToFirestore(compressed);
       await syncToFirebaseAccount({ headTeacher: { ...headTeacher, imageUrl: compressed } });
       showToast('Head teacher photo uploaded and synchronized to cloud storage for all users!');
@@ -541,6 +586,7 @@ export const DeveloperPortal: React.FC = () => {
     e.preventDefault();
     updateHeadTeacher(htForm);
     if (htForm.imageUrl) {
+      await setPersistentMedia('headteacher_photo', htForm.imageUrl);
       await saveHeadTeacherImageToFirestore(htForm.imageUrl);
     }
     await syncToFirebaseAccount({ headTeacher: htForm });

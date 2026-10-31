@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 
 interface SchoolCrestProps {
@@ -24,6 +24,11 @@ export const SchoolCrest: React.FC<SchoolCrestProps> = ({
 
   // Official school crest logo
   const logoSource = schoolInfo?.logoUrl || '/logo.png';
+
+  // Reset imgError whenever logoSource updates so uploaded logos manifest immediately
+  useEffect(() => {
+    setImgError(false);
+  }, [logoSource]);
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>

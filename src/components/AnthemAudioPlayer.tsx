@@ -57,8 +57,17 @@ export const AnthemAudioPlayer: React.FC = () => {
         });
       });
     } else {
-      const defaultUrl = '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav';
-      setAudioSrc(defaultUrl);
+      import('../utils/mediaStorage').then(({ getPersistentMedia }) => {
+        getPersistentMedia('anthem_audio').then(cachedAudio => {
+          if (cachedAudio) {
+            setAudioSrc(cachedAudio);
+            if (audioRef.current) audioRef.current.load();
+          } else {
+            const defaultUrl = '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav';
+            setAudioSrc(defaultUrl);
+          }
+        });
+      });
     }
   }, [customAudioUrl]);
 

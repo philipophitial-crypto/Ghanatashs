@@ -603,54 +603,5 @@ export const ACADEMIC_PROGRAMS = [
 export const DEFAULT_TEACHER_PASSWORD = 'CarpeDiem1936';
 export const DEVELOPER_PASSWORD = 'Osabutey1936';
 
-export const DEFAULT_PTA_NOTICES = [
-  {
-    id: 'pta-001',
-    title: '3rd Term General PTA Meeting & Academic Progress Review',
-    category: 'General Meeting' as const,
-    date: '2025-03-22',
-    author: 'PTA Executive Secretariat & Headmaster',
-    summary: 'Notice is hereby given to all parents and guardians of Ghanata Senior High School regarding the upcoming 3rd Term General Meeting.',
-    content: 'Notice is hereby given to all parents and guardians of students in Ghanata Senior High School that the statutory General Parent-Teacher Association (PTA) meeting for the academic term will convene at the School Assembly Hall on Saturday, 22nd March 2025 at 9:00 AM prompt.\n\nAgenda items include:\n1. Opening devotion and welcome remarks by PTA Chairman.\n2. Address by the Headmaster on terminal academic performance and WASSCE readiness.\n3. Financial report and presentation of audited welfare accounts.\n4. Consideration of proposed campus infrastructure enhancement projects (new e-library and student clinic expansion).\n5. Open forum and election of Year 1 Parent Representatives.\n\nAll parents are urged to attend promptly as vital resolutions impacting your wards will be finalized.',
-    priority: 'Urgent' as const,
-    venue: 'Ghanata SHS Main Assembly Hall, Dodowa',
-    time: '9:00 AM to 1:00 PM GMT'
-  },
-  {
-    id: 'pta-002',
-    title: 'PTA Science Laboratory & ICT Resource Levy Update',
-    category: 'Levies & Welfare' as const,
-    date: '2025-02-14',
-    author: 'PTA Financial Committee',
-    summary: 'Status report on the voluntary PTA contribution towards refurbishing the Physics, Chemistry, and ICT Laboratories.',
-    content: 'The PTA Executive Committee expresses deep gratitude to all parents who have contributed towards the science laboratory refurbishment fund. Through your generous support, 45 modern digital microscopes and 30 desktop computers have arrived on campus.\n\nParents who are yet to fulfill their voluntary quota are kindly encouraged to deposit directly into the official Ghanata PTA Consolidated Account at GCB Bank Dodowa Branch or via the official MTN Mobile Money merchant terminal. Official receipts are issued at the Bursar\'s registry during visiting days.',
-    priority: 'Important' as const,
-    venue: 'GCB Bank Dodowa / School Bursar Office',
-    time: 'Weekdays 8:00 AM to 3:30 PM'
-  },
-  {
-    id: 'pta-003',
-    title: 'WASSCE Candidates Special Clinic & Counseling Seminar',
-    category: 'Academic Report' as const,
-    date: '2025-01-28',
-    author: 'Academic Board & Guidance Counseling Unit',
-    summary: 'A collaborative seminar for SHS 3 parents and candidates on study habits, mock exam analytics, and stress management.',
-    content: 'The Guidance and Counseling Department, in conjunction with the PTA Academic Committee, invites all final-year parents to a 2-hour interactive symposium. Heads of Science, Arts, Business, Home Economics, and Visual Arts will be available to present diagnostic analysis of recent mock results and recommend targeted home support interventions before the upcoming WAEC final examinations.',
-    priority: 'Normal' as const,
-    venue: 'Ghanata SHS Dining Hall',
-    time: '10:00 AM to 12:30 PM'
-  },
-  {
-    id: 'pta-004',
-    title: 'Commissioning of the PTA Solar-Powered Water Borehole',
-    category: 'Development Projects' as const,
-    date: '2024-11-18',
-    author: 'PTA Projects Oversight Committee',
-    summary: 'Celebration and official handover of the 50,000-liter mechanized water project serving student boarding dormitories.',
-    content: 'We are pleased to announce the successful commissioning of the Ghanata SHS PTA mechanized borehole project. The system is equipped with automated solar pumps and dual storage reservoirs ensuring 24/7 unhindered potable water supply to all boarding houses (Osabutey, Dodowa, Aggrey, Freeman, and Guggisberg). Special appreciation to the alumni and executive patrons.',
-    priority: 'Normal' as const,
-    venue: 'Campus Boarding House Compound',
-    time: 'Completed'
-  }
-];
+export const DEFAULT_PTA_NOTICES = [];
 

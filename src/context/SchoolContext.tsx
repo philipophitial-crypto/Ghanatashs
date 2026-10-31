@@ -26,6 +26,7 @@ import {
   saveSingleStudentToSupabase
 } from '../services/supabaseClient';
 import { calculateClassPositions, formatFullClass } from '../utils/studentUtils';
+import { getPersistentMedia, setPersistentMedia } from '../utils/mediaStorage';
 
 interface SchoolContextType {
   schoolInfo: SchoolInfo;
@@ -80,7 +81,7 @@ const STORAGE_KEYS = {
   FOUNDER: 'ghanata_founder_v4',
   HEADTEACHER: 'ghanata_headteacher_v4',
   STUDENTS: 'ghanata_students_v4',
-  PTA_NOTICES: 'ghanata_pta_notices_v4',
+  PTA_NOTICES: 'ghanata_pta_notices_v5',
   TEACHER_PW: 'ghanata_teacher_pw_v4',
   DEV_AUTH: 'ghanata_dev_auth_v4',
   COURSES: 'ghanata_courses_v4'
@@ -161,10 +162,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const [ptaNotices, setPtaNotices] = useState<PtaNotice[]>(() => {
     try {
+      localStorage.removeItem('ghanata_pta_notices_v4');
+      localStorage.removeItem('ghanata_pta_notices_v3');
+      localStorage.removeItem('ghanata_pta_notices_v2');
+      localStorage.removeItem('ghanata_pta_notices');
       const saved = localStorage.getItem(STORAGE_KEYS.PTA_NOTICES);
-      return saved ? JSON.parse(saved) : DEFAULT_PTA_NOTICES;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return DEFAULT_PTA_NOTICES;
+      return [];
     }
   });
 
@@ -200,15 +205,55 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   });
 
+  // Instant persistent media restore from browser IndexedDB
+  useEffect(() => {
+    getPersistentMedia('school_logo').then(logo => {
+      if (logo) setSchoolInfo(prev => ({ ...prev, logoUrl: logo }));
+    });
+    getPersistentMedia('anthem_audio').then(audio => {
+      if (audio) {
+        getPersistentMedia('anthem_filename').then(fn => {
+          setSchoolInfo(prev => ({
+            ...prev,
+            anthem: {
+              ...(prev.anthem || DEFAULT_SCHOOL_INFO.anthem),
+              audioUrl: audio,
+              audioFileName: fn || prev.anthem?.audioFileName
+            }
+          }));
+        });
+      }
+    });
+    getPersistentMedia('founder_portrait').then(img => {
+      if (img) setFounder(prev => ({ ...prev, imageUrl: img }));
+    });
+    getPersistentMedia('headteacher_photo').then(img => {
+      if (img) setHeadTeacher(prev => ({ ...prev, imageUrl: img }));
+    });
+  }, []);
+
   // Load from Supabase (Primary Storage) on mount, falling back to Firebase / local
   useEffect(() => {
     loadSchoolDataFromSupabase().then(supabaseData => {
       if (supabaseData) {
-        if (supabaseData.schoolInfo) setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(supabaseData.schoolInfo) }));
-        if (supabaseData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...supabaseData.founder }));
-        if (supabaseData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...supabaseData.headTeacher }));
+        if (supabaseData.schoolInfo) {
+          setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(supabaseData.schoolInfo) }));
+          if (supabaseData.schoolInfo.logoUrl) setPersistentMedia('school_logo', supabaseData.schoolInfo.logoUrl);
+          if (supabaseData.schoolInfo.anthem?.audioUrl) {
+            setPersistentMedia('anthem_audio', supabaseData.schoolInfo.anthem.audioUrl);
+            if (supabaseData.schoolInfo.anthem.audioFileName) setPersistentMedia('anthem_filename', supabaseData.schoolInfo.anthem.audioFileName);
+          }
+        }
+        if (supabaseData.founder) {
+          setFounder((prev: FounderProfile) => ({ ...prev, ...supabaseData.founder }));
+          if (supabaseData.founder.imageUrl) setPersistentMedia('founder_portrait', supabaseData.founder.imageUrl);
+        }
+        if (supabaseData.headTeacher) {
+          setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...supabaseData.headTeacher }));
+          if (supabaseData.headTeacher.imageUrl) setPersistentMedia('headteacher_photo', supabaseData.headTeacher.imageUrl);
+        }
         if (supabaseData.students && supabaseData.students.length > 0) setStudents(calculateClassPositions(supabaseData.students));
-        if (supabaseData.ptaNotices && supabaseData.ptaNotices.length > 0) setPtaNotices(supabaseData.ptaNotices);
+        if (supabaseData.ptaNotices !== undefined && Array.isArray(supabaseData.ptaNotices)) setPtaNotices(supabaseData.ptaNotices);
         if (supabaseData.courseConfigs && Object.keys(supabaseData.courseConfigs).length > 0) setCourseConfigs(supabaseData.courseConfigs);
         setFirebaseSyncStatus('Connected to Supabase Primary Storage (philipophitial1@gmail.com)');
         return;
@@ -231,11 +276,22 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 title: sanitizedRemote?.anthem?.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
               }
             }));
+            if (remoteData.schoolInfo.logoUrl) setPersistentMedia('school_logo', remoteData.schoolInfo.logoUrl);
+            if (remoteData.schoolInfo.anthem?.audioUrl) {
+              setPersistentMedia('anthem_audio', remoteData.schoolInfo.anthem.audioUrl);
+              if (remoteData.schoolInfo.anthem.audioFileName) setPersistentMedia('anthem_filename', remoteData.schoolInfo.anthem.audioFileName);
+            }
           }
-          if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
-          if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
+          if (remoteData.founder) {
+            setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
+            if (remoteData.founder.imageUrl) setPersistentMedia('founder_portrait', remoteData.founder.imageUrl);
+          }
+          if (remoteData.headTeacher) {
+            setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
+            if (remoteData.headTeacher.imageUrl) setPersistentMedia('headteacher_photo', remoteData.headTeacher.imageUrl);
+          }
           if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
-          if (remoteData.ptaNotices && remoteData.ptaNotices.length > 0) setPtaNotices(remoteData.ptaNotices);
+          if (remoteData.ptaNotices !== undefined && Array.isArray(remoteData.ptaNotices)) setPtaNotices(remoteData.ptaNotices);
           if (remoteData.courseConfigs && Object.keys(remoteData.courseConfigs).length > 0) setCourseConfigs(remoteData.courseConfigs);
           setFirebaseSyncStatus('Synced with Cloud Storage (philipophitial1@gmail.com)');
         }
@@ -255,7 +311,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
         if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
         if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
-        if (remoteData.ptaNotices && remoteData.ptaNotices.length > 0) setPtaNotices(remoteData.ptaNotices);
+        if (remoteData.ptaNotices !== undefined && Array.isArray(remoteData.ptaNotices)) setPtaNotices(remoteData.ptaNotices);
         if (remoteData.courseConfigs && Object.keys(remoteData.courseConfigs).length > 0) setCourseConfigs(remoteData.courseConfigs);
         setFirebaseSyncStatus('Live synced via Supabase Primary Storage');
       }
@@ -270,7 +326,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (remoteData.founder) setFounder((prev: FounderProfile) => ({ ...prev, ...remoteData.founder }));
         if (remoteData.headTeacher) setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...remoteData.headTeacher }));
         if (remoteData.students && remoteData.students.length > 0) setStudents(calculateClassPositions(remoteData.students));
-        if (remoteData.ptaNotices && remoteData.ptaNotices.length > 0) setPtaNotices(remoteData.ptaNotices);
+        if (remoteData.ptaNotices !== undefined && Array.isArray(remoteData.ptaNotices)) setPtaNotices(remoteData.ptaNotices);
         if (remoteData.courseConfigs && Object.keys(remoteData.courseConfigs).length > 0) setCourseConfigs(remoteData.courseConfigs);
       }
     });
@@ -281,14 +337,15 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, []);
 
-  // Ensure cloud databases store the updated official Vision & Mission
+  // Ensure cloud databases store the updated official Vision & Mission and cleared PTA notices
   useEffect(() => {
     const timer = setTimeout(() => {
       syncToFirebaseAccount({
         schoolInfo: {
           vision: DEFAULT_SCHOOL_INFO.vision,
           mission: DEFAULT_SCHOOL_INFO.mission
-        }
+        },
+        ptaNotices: []
       });
     }, 1200);
     return () => clearTimeout(timer);
@@ -411,15 +468,39 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateSchoolInfo = (info: Partial<SchoolInfo>) => {
-    setSchoolInfo(prev => ({ ...prev, ...info }));
+    setSchoolInfo(prev => {
+      const merged = { ...prev, ...info };
+      if (info.logoUrl && (info.logoUrl.startsWith('data:') || info.logoUrl.startsWith('http') || info.logoUrl.startsWith('/'))) {
+        setPersistentMedia('school_logo', info.logoUrl);
+      }
+      if (info.anthem?.audioUrl && (info.anthem.audioUrl.startsWith('data:') || info.anthem.audioUrl.startsWith('http'))) {
+        setPersistentMedia('anthem_audio', info.anthem.audioUrl);
+        if (info.anthem.audioFileName) {
+          setPersistentMedia('anthem_filename', info.anthem.audioFileName);
+        }
+      }
+      return merged;
+    });
   };
 
   const updateFounder = (profile: Partial<FounderProfile>) => {
-    setFounder(prev => ({ ...prev, ...profile }));
+    setFounder(prev => {
+      const merged = { ...prev, ...profile };
+      if (profile.imageUrl && (profile.imageUrl.startsWith('data:') || profile.imageUrl.startsWith('http') || profile.imageUrl.startsWith('/'))) {
+        setPersistentMedia('founder_portrait', profile.imageUrl);
+      }
+      return merged;
+    });
   };
 
   const updateHeadTeacher = (profile: Partial<HeadTeacherProfile>) => {
-    setHeadTeacher(prev => ({ ...prev, ...profile }));
+    setHeadTeacher(prev => {
+      const merged = { ...prev, ...profile };
+      if (profile.imageUrl && (profile.imageUrl.startsWith('data:') || profile.imageUrl.startsWith('http') || profile.imageUrl.startsWith('/'))) {
+        setPersistentMedia('headteacher_photo', profile.imageUrl);
+      }
+      return merged;
+    });
   };
 
   const addStudentResult = (student: StudentResult) => {

@@ -242,6 +242,72 @@ export async function loadHeadTeacherImageFromFirestore(): Promise<string | null
   }
 }
 
+// Stores Official School Logo directly in Google Cloud Firestore media storage
+export async function saveLogoToFirestore(logoUrl: string) {
+  if (!logoUrl || isQuotaExhausted) return;
+  try {
+    if (logoUrl.length <= CHUNK_SIZE) {
+      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'), {
+        logoUrl,
+        numChunks: 0,
+        owner: 'philipophitial1@gmail.com',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } else {
+      const numChunks = Math.ceil(logoUrl.length / CHUNK_SIZE);
+      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'), {
+        numChunks,
+        totalLength: logoUrl.length,
+        owner: 'philipophitial1@gmail.com',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      for (let i = 0; i < numChunks; i++) {
+        const chunk = logoUrl.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'logo_chunks', String(i)), {
+          index: i,
+          chunk,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+    }
+    console.log('School logo successfully synced to Google Cloud storage.');
+  } catch (e) {
+    if (!handleQuotaError(e)) {
+      console.warn('Logo image storage note:', e);
+    }
+  }
+}
+
+// Loads and reassembles School Logo from Google Cloud Firestore
+export async function loadLogoFromFirestore(): Promise<string | null> {
+  try {
+    const snap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'));
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    if (!data) return null;
+    if (!data.numChunks || data.numChunks === 0) {
+      return data.logoUrl || null;
+    }
+    const chunksSnap = await getDocs(collection(db, 'schools', SCHOOL_DOC_ID, 'logo_chunks'));
+    const chunkMap: Record<number, string> = {};
+    chunksSnap.forEach(c => {
+      const d = c.data();
+      if (d && typeof d.index === 'number' && d.chunk) {
+        chunkMap[d.index] = d.chunk;
+      }
+    });
+    let full = '';
+    for (let i = 0; i < data.numChunks; i++) {
+      if (chunkMap[i]) full += chunkMap[i];
+    }
+    return full || null;
+  } catch (e) {
+    console.warn('Error loading logo from cloud:', e);
+    return null;
+  }
+}
+
 // Reassembles and restores audio tracks from Google Cloud Firestore
 export async function loadAudioFromFirestore(): Promise<{ audioUrl: string; audioFileName?: string } | null> {
   try {
@@ -307,6 +373,11 @@ export async function saveSchoolDataToFirebase(data: {
       safeAnthem.audioUrl = 'stored_in_google_cloud';
     }
 
+    // 2. Prepare logo: if data URL or custom upload, store in dedicated logo media chunks
+    if (data.schoolInfo?.logoUrl && (data.schoolInfo.logoUrl.startsWith('data:') || data.schoolInfo.logoUrl.length > 500)) {
+      await saveLogoToFirestore(data.schoolInfo.logoUrl);
+    }
+
     const schoolInfoToSave = {
       ...data.schoolInfo,
       ...(safeAnthem ? { anthem: safeAnthem } : {})
@@ -328,7 +399,7 @@ export async function saveSchoolDataToFirebase(data: {
     // A single atomic write updates the entire school record
     await setDoc(doc(db, 'schools', SCHOOL_DOC_ID), sanitizedSchoolData, { merge: true });
 
-    console.log('Successfully saved all records, pictures, founder portrait, and audio to Google Cloud Firestore');
+    console.log('Successfully saved all records, pictures, logo, founder portrait, and audio to Google Cloud Firestore');
     return true;
   } catch (error: any) {
     if (handleQuotaError(error)) {
@@ -371,13 +442,10 @@ export async function loadSchoolDataFromFirebase() {
 
     // Restore dedicated media/logo if available
     try {
-      const logoSnap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'));
-      if (logoSnap.exists()) {
-        const logoData = logoSnap.data();
-        if (logoData?.logoUrl) {
-          if (!schoolInfo) schoolInfo = {};
-          schoolInfo.logoUrl = logoData.logoUrl;
-        }
+      const restoredLogo = await loadLogoFromFirestore();
+      if (restoredLogo) {
+        if (!schoolInfo) schoolInfo = {};
+        schoolInfo.logoUrl = restoredLogo;
       }
     } catch {
       // ignore
