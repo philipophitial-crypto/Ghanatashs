@@ -266,7 +266,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (supabaseData.founder.imageUrl) setPersistentMedia('founder_portrait', supabaseData.founder.imageUrl);
         }
         if (supabaseData.headTeacher) {
-          setHeadTeacher((prev: HeadTeacherProfile) => ({ ...prev, ...supabaseData.headTeacher }));
+          setHeadTeacher((prev: HeadTeacherProfile) => sanitizeHeadTeacher({ ...prev, ...supabaseData.headTeacher }));
           if (supabaseData.headTeacher.imageUrl) setPersistentMedia('headteacher_photo', supabaseData.headTeacher.imageUrl);
         }
         if (supabaseData.students && supabaseData.students.length > 0) setStudents(calculateClassPositions(supabaseData.students));
