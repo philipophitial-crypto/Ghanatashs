@@ -126,13 +126,6 @@ export async function saveFounderImageToFirestore(imageUrl: string) {
       }, { merge: true });
     } else {
       const numChunks = Math.ceil(imageUrl.length / CHUNK_SIZE);
-      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'founder_image'), {
-        numChunks,
-        totalLength: imageUrl.length,
-        owner: 'philipophitial1@gmail.com',
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-
       for (let i = 0; i < numChunks; i++) {
         const chunk = imageUrl.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
         await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'founder_chunks', String(i)), {
@@ -141,6 +134,12 @@ export async function saveFounderImageToFirestore(imageUrl: string) {
           updatedAt: new Date().toISOString()
         }, { merge: true });
       }
+      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'founder_image'), {
+        numChunks,
+        totalLength: imageUrl.length,
+        owner: 'philipophitial1@gmail.com',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
     }
     console.log('Founder portrait successfully synced to Google Cloud storage.');
   } catch (e) {
@@ -192,13 +191,6 @@ export async function saveHeadTeacherImageToFirestore(imageUrl: string) {
       }, { merge: true });
     } else {
       const numChunks = Math.ceil(imageUrl.length / CHUNK_SIZE);
-      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'headteacher_image'), {
-        numChunks,
-        totalLength: imageUrl.length,
-        owner: 'philipophitial1@gmail.com',
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-
       for (let i = 0; i < numChunks; i++) {
         const chunk = imageUrl.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
         await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'headteacher_chunks', String(i)), {
@@ -207,6 +199,12 @@ export async function saveHeadTeacherImageToFirestore(imageUrl: string) {
           updatedAt: new Date().toISOString()
         }, { merge: true });
       }
+      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'headteacher_image'), {
+        numChunks,
+        totalLength: imageUrl.length,
+        owner: 'philipophitial1@gmail.com',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
     }
     console.log('Head Teacher portrait successfully synced to Google Cloud storage.');
   } catch (e) {
@@ -258,13 +256,6 @@ export async function saveLogoToFirestore(logoUrl: string) {
       }, { merge: true });
     } else {
       const numChunks = Math.ceil(logoUrl.length / CHUNK_SIZE);
-      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'), {
-        numChunks,
-        totalLength: logoUrl.length,
-        owner: 'philipophitial1@gmail.com',
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-
       for (let i = 0; i < numChunks; i++) {
         const chunk = logoUrl.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
         await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'logo_chunks', String(i)), {
@@ -273,6 +264,12 @@ export async function saveLogoToFirestore(logoUrl: string) {
           updatedAt: new Date().toISOString()
         }, { merge: true });
       }
+      await setDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'), {
+        numChunks,
+        totalLength: logoUrl.length,
+        owner: 'philipophitial1@gmail.com',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
     }
     console.log('School logo successfully synced to Google Cloud storage.');
   } catch (e) {

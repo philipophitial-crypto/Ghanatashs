@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { SchoolCrest } from './SchoolCrest';
-import { Quote, Award, Sparkles, HeartHandshake } from 'lucide-react';
+import { Quote, Award, Sparkles, HeartHandshake, UserX } from 'lucide-react';
 
 export const FounderSection: React.FC = () => {
   const { founder, setActiveTab } = useSchool();
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [founder.imageUrl]);
 
   return (
     <section className="py-20 bg-linear-to-b from-stone-900 via-stone-900 to-stone-950 text-white relative overflow-hidden">
@@ -37,16 +42,23 @@ export const FounderSection: React.FC = () => {
               {/* Gold & Green decorative frame */}
               <div className="absolute -inset-2 bg-gradient-to-r from-yellow-400 via-yellow-200 to-[#14532d] rounded-2xl opacity-75 blur-xs group-hover:opacity-100 transition-opacity" />
               
-              <div className="relative w-64 h-80 sm:w-72 sm:h-96 rounded-2xl overflow-hidden bg-stone-900 border-2 border-yellow-400 shadow-2xl">
-                <img
-                  src={founder.imageUrl}
-                  alt={founder.name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/founder.jpg';
-                  }}
-                />
+              <div className="relative w-64 h-80 sm:w-72 sm:h-96 rounded-2xl overflow-hidden bg-stone-900 border-2 border-yellow-400 shadow-2xl flex items-center justify-center">
+                {!imgError && founder.imageUrl ? (
+                  <img
+                    src={founder.imageUrl}
+                    alt={founder.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-stone-400 text-center space-y-3 bg-stone-900/90 w-full h-full">
+                    <div className="w-16 h-16 rounded-full bg-stone-800 flex items-center justify-center text-stone-500 border border-stone-700">
+                      <UserX className="w-8 h-8" />
+                    </div>
+                    <span className="text-xs font-semibold text-stone-300">No Photo Uploaded</span>
+                  </div>
+                )}
                 
                 {/* Overlay vignette */}
                 <div className="absolute inset-0 bg-linear-to-t from-stone-950 via-transparent to-transparent opacity-80" />

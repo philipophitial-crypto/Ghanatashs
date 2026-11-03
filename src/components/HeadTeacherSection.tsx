@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { SchoolCrest } from './SchoolCrest';
-import { Settings, Edit3, Award, Quote, CheckCircle2 } from 'lucide-react';
+import { Settings, Edit3, Award, Quote, CheckCircle2, UserX } from 'lucide-react';
 
 export const HeadTeacherSection: React.FC = () => {
   const { headTeacher, setActiveTab } = useSchool();
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [headTeacher.imageUrl]);
 
   return (
     <section id="headteacher-section" className="py-20 bg-stone-50 border-b border-stone-200">
@@ -24,8 +29,6 @@ export const HeadTeacherSection: React.FC = () => {
               Leadership, stewardship, and visionary guidance for modern Ghanata scholars.
             </p>
           </div>
-
-
         </div>
 
         {/* Headteacher Profile Card */}
@@ -35,24 +38,28 @@ export const HeadTeacherSection: React.FC = () => {
             {/* Left Column: Portrait & Official Badges */}
             <div className="lg:col-span-4 flex flex-col items-center text-center">
               <div className="relative group">
-                <div className="w-56 h-72 sm:w-64 sm:h-80 rounded-2xl overflow-hidden bg-stone-100 border-4 border-[#14532d] shadow-xl relative">
-                  <img
-                    src={headTeacher.imageUrl}
-                    alt={headTeacher.name}
-                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      // Fallback if image link fails
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80';
-                    }}
-                  />
+                <div className="w-56 h-72 sm:w-64 sm:h-80 rounded-2xl overflow-hidden bg-stone-100 border-4 border-[#14532d] shadow-xl relative flex items-center justify-center">
+                  {!imgError && headTeacher.imageUrl ? (
+                    <img
+                      src={headTeacher.imageUrl}
+                      alt={headTeacher.name}
+                      className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
+                      onError={() => setImgError(true)}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-6 text-stone-400 text-center space-y-3 bg-stone-100/90 w-full h-full">
+                      <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center text-stone-400">
+                        <UserX className="w-8 h-8" />
+                      </div>
+                      <span className="text-xs font-semibold text-stone-500">No Photo Uploaded</span>
+                    </div>
+                  )}
                   <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-stone-950/80 to-transparent p-3 text-white">
                     <span className="text-[11px] font-bold tracking-wider uppercase bg-[#14532d] px-2 py-0.5 rounded">
                       Headteacher in Office
                     </span>
                   </div>
                 </div>
-
-
               </div>
 
               <div className="mt-5 space-y-1">

@@ -22,6 +22,7 @@ import {
   Unlock,
   AlertCircle,
   Users,
+  UserX,
   LogOut,
   ExternalLink,
   MapPin,
@@ -1816,15 +1817,24 @@ export const DeveloperPortal: React.FC = () => {
               <span className="text-xs font-bold text-yellow-900 uppercase tracking-wider block">
                 Live Card Preview
               </span>
-              <div className="w-full h-64 rounded-xl overflow-hidden bg-stone-900 relative">
-                <img
-                  src={htForm.imageUrl}
-                  alt={htForm.name}
-                  className="w-full h-full object-cover object-top"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = DEFAULT_HEADTEACHER.imageUrl;
-                  }}
-                />
+              <div className="w-full h-64 rounded-xl overflow-hidden bg-stone-900 relative flex items-center justify-center">
+                {htForm.imageUrl ? (
+                  <img
+                    src={htForm.imageUrl}
+                    alt={htForm.name}
+                    className="w-full h-full object-cover object-top"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : null}
+                {(!htForm.imageUrl || htForm.imageUrl.includes('unsplash.com')) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-stone-800 to-stone-950 text-stone-300 text-center">
+                    <UserX className="w-10 h-10 text-yellow-500/80 mb-2" />
+                    <span className="text-xs font-bold text-stone-200">No Photo Uploaded</span>
+                    <span className="text-[10px] text-stone-400 mt-1">Upload head teacher photo to display</span>
+                  </div>
+                )}
               </div>
               <div>
                 <h4 className="font-heading font-bold text-base text-stone-900">
