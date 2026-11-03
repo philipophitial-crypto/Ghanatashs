@@ -41,7 +41,9 @@ import {
   Globe,
   Radio,
   Eye,
-  CheckCheck
+  CheckCheck,
+  CheckCircle2,
+  Activity
 } from 'lucide-react';
 import { HeadTeacherProfile, StudentResult, SubjectScore, PtaNotice, FounderProfile } from '../types';
 import { DEFAULT_FOUNDER, DEFAULT_SCHOOL_INFO, DEFAULT_HEADTEACHER } from '../data/defaultData';
@@ -138,6 +140,75 @@ export const DeveloperPortal: React.FC = () => {
   const [activeTab, setActiveDevTab] = useState<DevTab>('contact-info');
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  // System Changes Tracking and Live Indicator State
+  interface ChangeRecord {
+    id: string;
+    section: DevTab;
+    sectionTitle: string;
+    description: string;
+    timestamp: string;
+  }
+
+  const [changesList, setChangesList] = useState<ChangeRecord[]>([]);
+  const [modifiedTabs, setModifiedTabs] = useState<Record<string, { count: number; lastModified: string; time: string }>>({});
+  const [lastChange, setLastChange] = useState<ChangeRecord | null>(null);
+  const [indicatorPulse, setIndicatorPulse] = useState(false);
+
+  const getSectionTitle = (tab: DevTab): string => {
+    switch (tab) {
+      case 'contact-info': return 'Contact & Secretariat';
+      case 'founder': return 'Founder & Image Upload';
+      case 'anthem': return 'Anthem & Ceremonial Fanfare';
+      case 'headteacher': return 'Current Head Teacher';
+      case 'school-identity': return 'School Identity & Motto';
+      case 'history': return 'Brief History Narrative';
+      case 'students': return 'Students Results';
+      case 'pta-manager': return 'PTA Announcements';
+      case 'teacher-password': return 'Teacher Password';
+      case 'supabase-sync': return 'Supabase Database';
+      case 'firebase-sync': return 'Cloud Storage Sync';
+      case 'courses-classes': return 'Courses & Classes';
+      case 'batch-promotions': return 'Batch Promotions';
+      default: return 'System Settings';
+    }
+  };
+
+  const registerChange = (section: DevTab, description: string) => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const sectionTitle = getSectionTitle(section);
+    const newRecord: ChangeRecord = {
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      section,
+      sectionTitle,
+      description,
+      timestamp: time
+    };
+
+    setLastChange(newRecord);
+    setChangesList(prev => [newRecord, ...prev.slice(0, 49)]);
+    setModifiedTabs(prev => {
+      const current = prev[section] || { count: 0, lastModified: description, time };
+      return {
+        ...prev,
+        [section]: {
+          count: current.count + 1,
+          lastModified: description,
+          time
+        }
+      };
+    });
+
+    setIndicatorPulse(true);
+    setTimeout(() => setIndicatorPulse(false), 2200);
+  };
+
+  const clearAllChangesIndicators = () => {
+    setChangesList([]);
+    setModifiedTabs({});
+    setLastChange(null);
+    showToast('Changes indicator cleared.');
+  };
+
   // Supabase Primary Storage state
   const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => getSupabaseConfig().url);
   const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => getSupabaseConfig().anonKey);
@@ -164,8 +235,24 @@ export const DeveloperPortal: React.FC = () => {
     time: '9:30 AM GMT'
   });
 
-  // Headteacher local form state
-  const [htForm, setHtForm] = useState<HeadTeacherProfile>({ ...headTeacher });
+  // Headteacher local form state (ensures Madam Constance Amofa is loaded)
+  const [htForm, setHtForm] = useState<HeadTeacherProfile>(() => {
+    if (!headTeacher || !headTeacher.name || headTeacher.name.includes('Jackson') || headTeacher.name.includes('Obeng-Frimpong')) {
+      return { ...DEFAULT_HEADTEACHER };
+    }
+    return { ...headTeacher };
+  });
+
+  React.useEffect(() => {
+    if (headTeacher && !headTeacher.name.includes('Jackson') && !headTeacher.name.includes('Obeng-Frimpong')) {
+      setHtForm(prev => {
+        if (!prev.name || prev.name.includes('Jackson') || prev.name.includes('Obeng-Frimpong')) {
+          return { ...headTeacher };
+        }
+        return prev;
+      });
+    }
+  }, [headTeacher]);
 
   // School Identity form state
   const [identityForm, setIdentityForm] = useState({
@@ -267,6 +354,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleContactChange = (field: keyof typeof contactForm, val: string) => {
     const updated = { ...contactForm, [field]: val };
     setContactForm(updated);
+    registerChange('contact-info', `Field '${field}' modified`);
     if (realTimeSync) {
       updateSchoolInfo(updated);
     }
@@ -276,6 +364,7 @@ export const DeveloperPortal: React.FC = () => {
     e.preventDefault();
     const updated = { ...schoolInfo, ...contactForm };
     updateSchoolInfo(contactForm);
+    registerChange('contact-info', 'All contact information saved live');
     await syncToFirebaseAccount({ schoolInfo: updated });
     showToast('Contact information, phone numbers, and secretariat addresses updated and saved live!');
   };
@@ -297,6 +386,7 @@ export const DeveloperPortal: React.FC = () => {
     };
     setContactForm(defaults);
     updateSchoolInfo(defaults);
+    registerChange('contact-info', 'Contact information reset to defaults');
     await syncToFirebaseAccount({ schoolInfo: { ...schoolInfo, ...defaults } });
     showToast('Reset contact information to school secretariat defaults.');
   };
@@ -305,6 +395,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleIdentityChange = (field: keyof typeof identityForm, val: unknown) => {
     const updated = { ...identityForm, [field]: val };
     setIdentityForm(updated);
+    registerChange('school-identity', `Field '${field}' modified`);
     if (realTimeSync) {
       updateSchoolInfo(updated);
     }
@@ -314,6 +405,7 @@ export const DeveloperPortal: React.FC = () => {
     e.preventDefault();
     const updated = { ...schoolInfo, ...identityForm };
     updateSchoolInfo(identityForm);
+    registerChange('school-identity', 'School identity and motto saved live');
     if (identityForm.logoUrl && identityForm.logoUrl.startsWith('data:')) {
       await setPersistentMedia('school_logo', identityForm.logoUrl);
       await saveLogoToFirestore(identityForm.logoUrl);
@@ -325,6 +417,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleAddCoreValue = () => {
     const updated = [...identityForm.coreValues, 'New Core Value'];
     setIdentityForm(prev => ({ ...prev, coreValues: updated }));
+    registerChange('school-identity', 'New core value item added');
     if (realTimeSync) {
       updateSchoolInfo({ coreValues: updated });
     }
@@ -335,6 +428,7 @@ export const DeveloperPortal: React.FC = () => {
     const updated = [...identityForm.coreValues];
     updated[index] = val;
     setIdentityForm(prev => ({ ...prev, coreValues: updated }));
+    registerChange('school-identity', `Core value #${index + 1} updated`);
     if (realTimeSync) {
       updateSchoolInfo({ coreValues: updated });
     }
@@ -347,6 +441,7 @@ export const DeveloperPortal: React.FC = () => {
     }
     const updated = identityForm.coreValues.filter((_, i) => i !== index);
     setIdentityForm(prev => ({ ...prev, coreValues: updated }));
+    registerChange('school-identity', `Core value #${index + 1} removed`);
     if (realTimeSync) {
       updateSchoolInfo({ coreValues: updated });
     }
@@ -362,6 +457,7 @@ export const DeveloperPortal: React.FC = () => {
       const compressed = await compressImage(file, 400, 0.9);
       setIdentityForm(prev => ({ ...prev, logoUrl: compressed }));
       updateSchoolInfo({ logoUrl: compressed });
+      registerChange('school-identity', 'New school logo uploaded');
       await setPersistentMedia('school_logo', compressed);
       await saveLogoToFirestore(compressed);
       await syncToFirebaseAccount({ schoolInfo: { ...schoolInfo, logoUrl: compressed } });
@@ -376,6 +472,7 @@ export const DeveloperPortal: React.FC = () => {
     const defaultLogo = '/logo.png';
     setIdentityForm(prev => ({ ...prev, logoUrl: defaultLogo }));
     updateSchoolInfo({ logoUrl: defaultLogo });
+    registerChange('school-identity', 'School logo reset to official crest');
     await removePersistentMedia('school_logo');
     await saveLogoToFirestore(defaultLogo);
     await syncToFirebaseAccount({ schoolInfo: { ...schoolInfo, logoUrl: defaultLogo } });
@@ -386,6 +483,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleFounderChange = (field: keyof FounderProfile, val: unknown) => {
     const updated = { ...founderForm, [field]: val };
     setFounderForm(updated);
+    registerChange('founder', `Field '${String(field)}' modified`);
     if (realTimeSync) {
       updateFounder(updated);
     }
@@ -394,6 +492,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleSaveFounder = async (e: React.FormEvent) => {
     e.preventDefault();
     updateFounder(founderForm);
+    registerChange('founder', 'Founder tribute saved live');
     if (founderForm.imageUrl) {
       await setPersistentMedia('founder_portrait', founderForm.imageUrl);
       await saveFounderImageToFirestore(founderForm.imageUrl);
@@ -412,6 +511,7 @@ export const DeveloperPortal: React.FC = () => {
       const compressed = await compressImage(file, 500, 0.85);
       setFounderForm(prev => ({ ...prev, imageUrl: compressed }));
       updateFounder({ imageUrl: compressed });
+      registerChange('founder', 'Founder portrait photo uploaded');
       await setPersistentMedia('founder_portrait', compressed);
       await saveFounderImageToFirestore(compressed);
       await syncToFirebaseAccount({ founder: { ...founder, imageUrl: compressed } });
@@ -425,6 +525,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleResetFounderImage = async () => {
     setFounderForm(prev => ({ ...prev, imageUrl: DEFAULT_FOUNDER.imageUrl }));
     updateFounder({ imageUrl: DEFAULT_FOUNDER.imageUrl });
+    registerChange('founder', 'Founder portrait reset');
     await removePersistentMedia('founder_portrait');
     await saveFounderImageToFirestore(DEFAULT_FOUNDER.imageUrl);
     await syncToFirebaseAccount({ founder: { ...founder, imageUrl: DEFAULT_FOUNDER.imageUrl } });
@@ -458,6 +559,7 @@ export const DeveloperPortal: React.FC = () => {
         }
       };
       updateSchoolInfo(updatedSchoolInfo);
+      registerChange('anthem', `Audio fanfare '${file.name}' uploaded`);
       showToast(`Storing audio fanfare "${file.name}" to Google Cloud and persistent storage...`);
       await setPersistentMedia('anthem_audio', dataUrl);
       await setPersistentMedia('anthem_filename', file.name);
@@ -485,6 +587,7 @@ export const DeveloperPortal: React.FC = () => {
       }
     };
     updateSchoolInfo(updated);
+    registerChange('anthem', 'Ceremonial fanfare audio reset');
     await removePersistentMedia('anthem_audio');
     await removePersistentMedia('anthem_filename');
     await syncToFirebaseAccount({ schoolInfo: updated });
@@ -508,6 +611,7 @@ export const DeveloperPortal: React.FC = () => {
       }
     };
     updateSchoolInfo(updated);
+    registerChange('anthem', 'Official anthem lyrics restored');
     await syncToFirebaseAccount({ schoolInfo: updated });
     showToast('Restored official Ghanata School Anthem lyrics in real time.');
   };
@@ -530,6 +634,7 @@ export const DeveloperPortal: React.FC = () => {
       }
     };
     updateSchoolInfo(updated);
+    registerChange('anthem', 'Anthem lyrics & audio saved live');
     if (updated.anthem.audioUrl && updated.anthem.audioUrl.startsWith('data:')) {
       await setPersistentMedia('anthem_audio', updated.anthem.audioUrl);
       if (updated.anthem.audioFileName) {
@@ -559,6 +664,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleHtChange = (field: keyof HeadTeacherProfile, val: unknown) => {
     const updated = { ...htForm, [field]: val };
     setHtForm(updated);
+    registerChange('headteacher', `Head Teacher ${String(field)} updated`);
     if (realTimeSync) {
       updateHeadTeacher(updated);
     }
@@ -573,6 +679,7 @@ export const DeveloperPortal: React.FC = () => {
       const compressed = await compressImage(file, 500, 0.85);
       setHtForm(prev => ({ ...prev, imageUrl: compressed }));
       updateHeadTeacher({ imageUrl: compressed });
+      registerChange('headteacher', 'Head Teacher photo uploaded');
       await setPersistentMedia('headteacher_photo', compressed);
       await saveHeadTeacherImageToFirestore(compressed);
       await syncToFirebaseAccount({ headTeacher: { ...headTeacher, imageUrl: compressed } });
@@ -586,6 +693,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleSaveHeadTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
     updateHeadTeacher(htForm);
+    registerChange('headteacher', `Head Teacher profile (${htForm.name}) saved live`);
     if (htForm.imageUrl) {
       await setPersistentMedia('headteacher_photo', htForm.imageUrl);
       await saveHeadTeacherImageToFirestore(htForm.imageUrl);
@@ -594,11 +702,21 @@ export const DeveloperPortal: React.FC = () => {
     showToast('Head Teacher profile & picture saved to cloud storage live!');
   };
 
+  const handleResetHeadTeacher = async () => {
+    setHtForm({ ...DEFAULT_HEADTEACHER });
+    updateHeadTeacher(DEFAULT_HEADTEACHER);
+    registerChange('headteacher', 'Reset head teacher to Madam Constance Amofa (Headmistress)');
+    await removePersistentMedia('headteacher_photo');
+    await syncToFirebaseAccount({ headTeacher: DEFAULT_HEADTEACHER });
+    showToast('Reset head teacher profile to Madam Constance Amofa (Headmistress).');
+  };
+
   // Brief History updates
   const handleHistoryParagraphChange = (index: number, text: string) => {
     const updated = [...historyForm];
     updated[index] = text;
     setHistoryForm(updated);
+    registerChange('history', `History paragraph #${index + 1} modified`);
     if (realTimeSync) {
       updateSchoolInfo({ briefHistory: updated });
     }
@@ -608,6 +726,7 @@ export const DeveloperPortal: React.FC = () => {
     const updated = [...historyForm, 'New historical milestone for Ghanata Senior High School...'];
     setHistoryForm(updated);
     updateSchoolInfo({ briefHistory: updated });
+    registerChange('history', 'New history paragraph added');
     showToast('Added new history paragraph.');
   };
 
@@ -619,12 +738,14 @@ export const DeveloperPortal: React.FC = () => {
     const updated = historyForm.filter((_, i) => i !== index);
     setHistoryForm(updated);
     updateSchoolInfo({ briefHistory: updated });
+    registerChange('history', `History paragraph #${index + 1} removed`);
     showToast('Removed history paragraph.');
   };
 
   const handleResetHistory = () => {
     setHistoryForm([...DEFAULT_SCHOOL_INFO.briefHistory]);
     updateSchoolInfo({ briefHistory: DEFAULT_SCHOOL_INFO.briefHistory });
+    registerChange('history', 'Reset history to official archive narrative');
     showToast('Reset school history to official archive narrative.');
   };
 
@@ -636,6 +757,7 @@ export const DeveloperPortal: React.FC = () => {
       return;
     }
     updateTeacherPassword(newTeacherPw.trim());
+    registerChange('teacher-password', 'Teacher mode password updated');
     showToast(`Teacher mode password updated to "${newTeacherPw.trim()}".`);
   };
 
@@ -653,6 +775,7 @@ export const DeveloperPortal: React.FC = () => {
     };
 
     addPtaNotice(noticeObj);
+    registerChange('pta-manager', `PTA notice '${noticeObj.title}' posted`);
     showToast(`PTA Announcement "${newNotice.title}" posted live to parents!`);
     setNewNotice({
       title: '',
@@ -670,6 +793,7 @@ export const DeveloperPortal: React.FC = () => {
   const handleDeletePtaNotice = (id: string, title: string) => {
     if (window.confirm(`Are you sure you want to delete the PTA notice: "${title}"?`)) {
       deletePtaNotice(id);
+      registerChange('pta-manager', `PTA notice '${title}' deleted`);
       showToast(`PTA notice "${title}" was deleted.`);
     }
   };
@@ -863,6 +987,76 @@ export const DeveloperPortal: React.FC = () => {
           </div>
         )}
 
+        {/* System Changes Indicator Banner */}
+        <div className={`rounded-2xl p-4 sm:p-5 border transition-all duration-300 shadow-sm ${
+          changesList.length > 0 
+            ? 'bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border-amber-400 text-amber-950' 
+            : 'bg-white border-stone-200 text-stone-700'
+        }`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
+                changesList.length > 0 
+                  ? 'bg-amber-500 text-white' 
+                  : 'bg-emerald-600 text-white'
+              }`}>
+                {changesList.length > 0 ? (
+                  <Activity className={`w-5 h-5 ${indicatorPulse ? 'animate-bounce' : ''}`} />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5" />
+                )}
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-heading font-extrabold text-sm sm:text-base text-stone-900">
+                    Developer Changes Indicator
+                  </span>
+                  <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                    changesList.length > 0 
+                      ? 'bg-amber-200 text-amber-950 border border-amber-400 font-mono flex items-center gap-1.5' 
+                      : 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono'
+                  }`}>
+                    {changesList.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping" />}
+                    {changesList.length > 0 ? `${changesList.length} Modifications Recorded` : 'System Up to Date'}
+                  </span>
+                  {indicatorPulse && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#14532d] text-white animate-pulse">
+                      Live Update Detected
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-stone-600 mt-1">
+                  {changesList.length > 0 && lastChange ? (
+                    <span>
+                      <strong className="text-stone-900">Latest Change:</strong> {lastChange.description} in <strong className="text-stone-900">{lastChange.sectionTitle}</strong> at <span className="font-mono text-stone-700">{lastChange.timestamp}</span>. Updates broadcast in real time across the portal.
+                    </span>
+                  ) : (
+                    <span>No pending modifications in this session. All developer sections match live database and school records.</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {changesList.length > 0 && (
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Active On Site</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={clearAllChangesIndicators}
+                  className="text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white/90 hover:bg-stone-100 border border-stone-300 px-3 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  Reset Indicator
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Comprehensive Developer Navigation Tabs */}
         <div className="flex flex-wrap gap-2 border-b border-stone-300 pb-2">
           
@@ -877,6 +1071,11 @@ export const DeveloperPortal: React.FC = () => {
             <Phone className="w-4 h-4 text-yellow-400" />
             <span>Contact & Secretariat</span>
             <span className="text-[10px] bg-yellow-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">Live</span>
+            {modifiedTabs['contact-info'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['contact-info'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -889,6 +1088,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <Sparkles className="w-4 h-4 text-yellow-400" />
             <span>Founder & Image Upload</span>
+            {modifiedTabs['founder'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['founder'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -901,6 +1105,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <Music className="w-4 h-4 text-yellow-400" />
             <span>Anthem & Audio Fanfare</span>
+            {modifiedTabs['anthem'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['anthem'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -913,6 +1122,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <UserCheck className="w-4 h-4" />
             <span>Current Head Teacher</span>
+            {modifiedTabs['headteacher'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['headteacher'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -925,6 +1139,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <Building className="w-4 h-4" />
             <span>Motto, Vision & Values</span>
+            {modifiedTabs['school-identity'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['school-identity'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -937,6 +1156,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <BookOpen className="w-4 h-4" />
             <span>Brief History Narrative</span>
+            {modifiedTabs['history'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['history'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -949,6 +1173,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <GraduationCap className="w-4 h-4" />
             <span>Students Results ({students.length})</span>
+            {modifiedTabs['students'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['students'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -961,6 +1190,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <Users className="w-4 h-4" />
             <span>PTA Announcements ({ptaNotices.length})</span>
+            {modifiedTabs['pta-manager'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['pta-manager'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -973,6 +1207,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <Key className="w-4 h-4 text-yellow-300" />
             <span>Teacher Mode Password</span>
+            {modifiedTabs['teacher-password'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['teacher-password'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -1010,6 +1249,11 @@ export const DeveloperPortal: React.FC = () => {
           >
             <BookOpen className="w-4 h-4 text-yellow-400" />
             <span>Courses & Classes Manager</span>
+            {modifiedTabs['courses-classes'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['courses-classes'].count}
+              </span>
+            )}
           </button>
 
           <button
@@ -1023,6 +1267,11 @@ export const DeveloperPortal: React.FC = () => {
             <GraduationCap className="w-4 h-4 text-yellow-300" />
             <span>Batch Promotion & Alumni Archive</span>
             <span className="text-[10px] bg-yellow-400 text-stone-950 px-1.5 py-0.2 rounded font-bold">Auto</span>
+            {modifiedTabs['batch-promotions'] && (
+              <span className="text-[10px] bg-amber-400 text-stone-900 px-1.5 py-0.2 rounded font-bold">
+                {modifiedTabs['batch-promotions'].count}
+              </span>
+            )}
           </button>
 
         </div>
@@ -1678,13 +1927,31 @@ export const DeveloperPortal: React.FC = () => {
         {activeTab === 'headteacher' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <div className="lg:col-span-8 bg-white rounded-2xl p-6 sm:p-8 border border-stone-200 shadow-xs space-y-6">
-              <div className="border-b border-stone-200 pb-4">
-                <h2 className="font-heading text-lg font-bold text-stone-900">
-                  Update Current Head Teacher Details
-                </h2>
-                <p className="text-xs text-stone-500">
-                  Edits made here instantly update the leadership section on the Ghanata SHS Home Page.
-                </p>
+              <div className="border-b border-stone-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-lg font-bold text-stone-900">
+                      Update Current Head Teacher Details
+                    </h2>
+                    {modifiedTabs['headteacher'] && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        Changes Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-stone-500">
+                    Edits made here instantly update the leadership section on the Ghanata SHS Home Page.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetHeadTeacher}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-medium cursor-pointer"
+                  title="Reset to official Headmistress Madam Constance Amofa"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-yellow-600" />
+                  <span>Reset to Official</span>
+                </button>
               </div>
 
               <form onSubmit={handleSaveHeadTeacher} className="space-y-4">
@@ -1800,7 +2067,12 @@ export const DeveloperPortal: React.FC = () => {
                   />
                 </div>
 
-                <div className="pt-4 border-t border-stone-200 flex justify-end">
+                <div className="pt-4 border-t border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span className="text-xs text-stone-500">
+                    {modifiedTabs['headteacher'] 
+                      ? `Status: Modified (${modifiedTabs['headteacher'].lastModified})` 
+                      : 'Status: Synchronized with database'}
+                  </span>
                   <button
                     type="submit"
                     className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#14532d] hover:bg-[#0b331c] text-white font-bold rounded-lg text-sm shadow-sm transition-colors cursor-pointer"
@@ -3248,6 +3520,7 @@ export const DeveloperPortal: React.FC = () => {
                     return;
                   }
                   addClassToCourse(selectedProgramForClass, newClassName.trim());
+                  registerChange('courses-classes', `Added class '${newClassName.trim()}' to ${selectedProgramForClass}`);
                   setNewClassName('');
                   showToast(`Successfully added class "${newClassName.trim()}" to ${selectedProgramForClass}!`);
                 }} className="space-y-4">
@@ -3473,6 +3746,7 @@ export const DeveloperPortal: React.FC = () => {
 
                       if (window.confirm(`Execute Annual Academic Transition for ${nextAcademicYearInput} Session?\n\n- ${activeCount} students (Form 1 & Form 2) will advance to their next form.\n- ${form3Count} Form 3 students will complete senior high school and move to the Archived Alumni Registry tagged with year completed.\n\nContinue?`)) {
                         const result = promoteAllBatches(nextAcademicYearInput);
+                        registerChange('batch-promotions', `Promoted ${result.promoted} students and archived ${result.archived} Form 3 graduates for ${nextAcademicYearInput}`);
                         await syncToFirebaseAccount();
                         showToast(`Academic Year Transition Complete! Promoted ${result.promoted} students and archived ${result.archived} Form 3 graduates to the Alumni Registry for ${nextAcademicYearInput}.`);
                       }

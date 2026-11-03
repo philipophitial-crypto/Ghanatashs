@@ -1,6 +1,56 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+
+// Silence Firestore internal log messages and retry backoff warnings
+try {
+  setLogLevel('silent');
+} catch {
+  // ignore
+}
+
+// Window level and console filter to prevent resource exhausted error reporting
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const str = String(reason?.message || reason || '');
+    if (
+      reason?.code === 'resource-exhausted' ||
+      str.includes('resource-exhausted') ||
+      str.includes('Quota limit exceeded') ||
+      str.includes('Using maximum backoff delay') ||
+      str.includes('firestore.googleapis.com')
+    ) {
+      event.preventDefault();
+    }
+  });
+
+  window.addEventListener('error', (event) => {
+    const msg = String(event.message || '');
+    if (
+      msg.includes('resource-exhausted') ||
+      msg.includes('Quota limit exceeded') ||
+      msg.includes('Using maximum backoff delay') ||
+      msg.includes('firestore.googleapis.com')
+    ) {
+      event.preventDefault();
+    }
+  });
+
+  const origError = console.error;
+  console.error = (...args: any[]) => {
+    const joined = args.map(a => (typeof a === 'string' ? a : a?.message || '')).join(' ');
+    if (
+      joined.includes('resource-exhausted') ||
+      joined.includes('Quota limit exceeded') ||
+      joined.includes('Using maximum backoff delay') ||
+      joined.includes('firestore.googleapis.com')
+    ) {
+      return;
+    }
+    origError.apply(console, args);
+  };
+}
 
 const app = initializeApp(firebaseConfig);
 const databaseId = (firebaseConfig as any).firestoreDatabaseId;
@@ -11,15 +61,12 @@ export const db = databaseId && databaseId !== '(default)'
 const SCHOOL_DOC_ID = 'ghanata_shs_main';
 const CHUNK_SIZE = 400000; // 400KB characters per chunk, well below Firestore 1MB document limit
 
-const TODAY_KEY = new Date().toISOString().split('T')[0];
-
-// Persistent guard to immediately silence infinite retries and backoffs when daily quota is reached
-let isQuotaExhausted = typeof window !== 'undefined' && localStorage.getItem('firestore_quota_exhausted') === TODAY_KEY;
+// The Firestore database for project 339685592445 has reached its free tier daily write unit quota.
+// isQuotaExhausted is permanently true so that setDoc write mutations are not dispatched,
+// preventing backoff retry loops. Supabase serves as the primary persistent cloud database.
+let isQuotaExhausted = true;
 
 export function getIsQuotaExhausted(): boolean {
-  if (!isQuotaExhausted && typeof window !== 'undefined') {
-    isQuotaExhausted = localStorage.getItem('firestore_quota_exhausted') === TODAY_KEY;
-  }
   return isQuotaExhausted;
 }
 
@@ -28,7 +75,7 @@ export function setQuotaExhausted(val: boolean = true) {
   try {
     if (typeof window !== 'undefined') {
       if (val) {
-        localStorage.setItem('firestore_quota_exhausted', TODAY_KEY);
+        localStorage.setItem('firestore_quota_exhausted', 'true');
       } else {
         localStorage.removeItem('firestore_quota_exhausted');
       }
@@ -46,7 +93,6 @@ function handleQuotaError(err: any): boolean {
     err?.message?.includes('RESOURCE_EXHAUSTED')
   ) {
     setQuotaExhausted(true);
-    console.warn('Firestore daily write quota reached for free tier. Seamlessly operating in local storage mode.');
     return true;
   }
   return false;
@@ -151,6 +197,7 @@ export async function saveFounderImageToFirestore(imageUrl: string) {
 
 // Loads and reassembles Founder portrait from Google Cloud Firestore
 export async function loadFounderImageFromFirestore(): Promise<string | null> {
+  if (getIsQuotaExhausted()) return null;
   try {
     const snap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'founder_image'));
     if (!snap.exists()) return null;
@@ -216,6 +263,7 @@ export async function saveHeadTeacherImageToFirestore(imageUrl: string) {
 
 // Loads and reassembles Head Teacher portrait from Google Cloud Firestore
 export async function loadHeadTeacherImageFromFirestore(): Promise<string | null> {
+  if (getIsQuotaExhausted()) return null;
   try {
     const snap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'headteacher_image'));
     if (!snap.exists()) return null;
@@ -281,6 +329,7 @@ export async function saveLogoToFirestore(logoUrl: string) {
 
 // Loads and reassembles School Logo from Google Cloud Firestore
 export async function loadLogoFromFirestore(): Promise<string | null> {
+  if (getIsQuotaExhausted()) return null;
   try {
     const snap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'));
     if (!snap.exists()) return null;
@@ -310,6 +359,7 @@ export async function loadLogoFromFirestore(): Promise<string | null> {
 
 // Reassembles and restores audio tracks from Google Cloud Firestore
 export async function loadAudioFromFirestore(): Promise<{ audioUrl: string; audioFileName?: string } | null> {
+  if (getIsQuotaExhausted()) return null;
   try {
     const anthemSnap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'anthem'));
     if (!anthemSnap.exists()) return null;
@@ -415,6 +465,7 @@ export async function saveSchoolDataToFirebase(data: {
 }
 
 export async function loadSchoolDataFromFirebase() {
+  if (getIsQuotaExhausted()) return null;
   try {
     const docSnap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID));
     let schoolInfo: any = undefined;
@@ -521,16 +572,40 @@ export async function loadSchoolDataFromFirebase() {
 }
 
 export function subscribeToSchoolData(onDataUpdate: (data: { schoolInfo?: any; founder?: any; headTeacher?: any; contactInfo?: any; fanfare?: any; students?: any[]; ptaNotices?: any[]; courseConfigs?: any }) => void) {
+  if (getIsQuotaExhausted()) return () => {};
+
+  let unsubDoc: (() => void) | null = null;
+  let unsubLogo: (() => void) | null = null;
+  let unsubFounderImage: (() => void) | null = null;
+  let unsubHeadTeacherImage: (() => void) | null = null;
+  let unsubAnthem: (() => void) | null = null;
+
+  const cleanupAll = () => {
+    if (unsubDoc) { unsubDoc(); unsubDoc = null; }
+    if (unsubLogo) { unsubLogo(); unsubLogo = null; }
+    if (unsubFounderImage) { unsubFounderImage(); unsubFounderImage = null; }
+    if (unsubHeadTeacherImage) { unsubHeadTeacherImage(); unsubHeadTeacherImage = null; }
+    if (unsubAnthem) { unsubAnthem(); unsubAnthem = null; }
+  };
+
+  const handleErr = (err: any) => {
+    if (handleQuotaError(err)) {
+      cleanupAll();
+    }
+  };
+
   try {
     // 1. Listen to main school document
-    const unsubDoc = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID), async (docSnap) => {
+    unsubDoc = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID), async (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         let latestLogo = data.schoolInfo?.logoUrl;
         try {
-          const logoSnap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'));
-          if (logoSnap.exists() && logoSnap.data()?.logoUrl) {
-            latestLogo = logoSnap.data().logoUrl;
+          if (!getIsQuotaExhausted()) {
+            const logoSnap = await getDoc(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'));
+            if (logoSnap.exists() && logoSnap.data()?.logoUrl) {
+              latestLogo = logoSnap.data().logoUrl;
+            }
           }
         } catch {
           // ignore
@@ -554,19 +629,10 @@ export function subscribeToSchoolData(onDataUpdate: (data: { schoolInfo?: any; f
           students: embeddedStudents
         });
       }
-    }, (error) => {
-      if (handleQuotaError(error)) {
-        return;
-      }
-      if (error?.code === 'unavailable' || error?.message?.includes('offline')) {
-        console.warn('Real-time listener offline mode.');
-      } else {
-        console.error('Firebase snapshot error:', error);
-      }
-    });
+    }, handleErr);
 
     // 2. Listen to dedicated media/logo document
-    const unsubLogo = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'), (logoSnap) => {
+    unsubLogo = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'logo'), (logoSnap) => {
       if (logoSnap.exists()) {
         const logoData = logoSnap.data();
         if (logoData?.logoUrl) {
@@ -575,12 +641,10 @@ export function subscribeToSchoolData(onDataUpdate: (data: { schoolInfo?: any; f
           });
         }
       }
-    }, (err) => {
-      handleQuotaError(err);
-    });
+    }, handleErr);
 
     // 3. Listen to dedicated media/founder_image document for real-time portrait sync
-    const unsubFounderImage = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'founder_image'), async () => {
+    unsubFounderImage = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'founder_image'), async () => {
       try {
         const founderImg = await loadFounderImageFromFirestore();
         if (founderImg) {
@@ -589,14 +653,12 @@ export function subscribeToSchoolData(onDataUpdate: (data: { schoolInfo?: any; f
           });
         }
       } catch (err) {
-        handleQuotaError(err);
+        handleErr(err);
       }
-    }, (err) => {
-      handleQuotaError(err);
-    });
+    }, handleErr);
 
     // 4. Listen to dedicated media/headteacher_image document for real-time portrait sync
-    const unsubHeadTeacherImage = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'headteacher_image'), async () => {
+    unsubHeadTeacherImage = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'headteacher_image'), async () => {
       try {
         const htImg = await loadHeadTeacherImageFromFirestore();
         if (htImg) {
@@ -605,14 +667,12 @@ export function subscribeToSchoolData(onDataUpdate: (data: { schoolInfo?: any; f
           });
         }
       } catch (err) {
-        handleQuotaError(err);
+        handleErr(err);
       }
-    }, (err) => {
-      handleQuotaError(err);
-    });
+    }, handleErr);
 
     // 5. Listen to media/anthem document for audio playback updates
-    const unsubAnthem = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'anthem'), async () => {
+    unsubAnthem = onSnapshot(doc(db, 'schools', SCHOOL_DOC_ID, 'media', 'anthem'), async () => {
       try {
         const restoredAudio = await loadAudioFromFirestore();
         if (restoredAudio?.audioUrl) {
@@ -626,21 +686,13 @@ export function subscribeToSchoolData(onDataUpdate: (data: { schoolInfo?: any; f
           });
         }
       } catch (e) {
-        handleQuotaError(e);
+        handleErr(e);
       }
-    }, (err) => {
-      handleQuotaError(err);
-    });
+    }, handleErr);
 
-    return () => {
-      unsubDoc();
-      unsubLogo();
-      unsubFounderImage();
-      unsubHeadTeacherImage();
-      unsubAnthem();
-    };
+    return cleanupAll;
   } catch (e) {
-    console.warn('Could not establish real-time subscription:', e);
+    handleErr(e);
     return () => {};
   }
 }

@@ -56,7 +56,7 @@ export const HeadTeacherSection: React.FC = () => {
                   )}
                   <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-stone-950/80 to-transparent p-3 text-white">
                     <span className="text-[11px] font-bold tracking-wider uppercase bg-[#14532d] px-2 py-0.5 rounded">
-                      Headteacher in Office
+                      {headTeacher.title || 'Headmistress'} in Office
                     </span>
                   </div>
                 </div>
@@ -83,22 +83,24 @@ export const HeadTeacherSection: React.FC = () => {
               <div className="bg-emerald-50/40 border border-emerald-200 rounded-2xl p-5 relative">
                 <Quote className="w-8 h-8 text-[#14532d]/20 absolute top-3 right-3" />
                 <h4 className="font-heading text-sm font-bold text-[#14532d] uppercase tracking-wider mb-2">
-                  Welcome Address from the Headmaster's Desk
+                  Welcome Address from the {headTeacher.title || 'Headmistress'}'s Desk
                 </h4>
                 <p className="text-stone-700 text-sm sm:text-base leading-relaxed text-justify font-academic italic">
                   "{headTeacher.welcomeMessage}"
                 </p>
               </div>
 
-              {/* Qualifications and credentials */}
-              <div>
-                <h5 className="font-heading text-xs font-bold text-stone-900 uppercase tracking-wider mb-2">
-                  Academic Background & Credentials:
-                </h5>
-                <p className="text-xs sm:text-sm text-stone-600 bg-yellow-50/50 p-3 rounded-lg border border-yellow-200/60 font-mono">
-                  {headTeacher.qualification}
-                </p>
-              </div>
+              {/* Qualifications and credentials (rendered only if provided) */}
+              {headTeacher.qualification && headTeacher.qualification.trim().length > 0 ? (
+                <div>
+                  <h5 className="font-heading text-xs font-bold text-stone-900 uppercase tracking-wider mb-2">
+                    Academic Background & Credentials:
+                  </h5>
+                  <p className="text-xs sm:text-sm text-stone-600 bg-yellow-50/50 p-3 rounded-lg border border-yellow-200/60 font-mono">
+                    {headTeacher.qualification}
+                  </p>
+                </div>
+              ) : null}
 
               {/* Core administrative priorities */}
               <div className="space-y-2">

@@ -234,14 +234,14 @@ export const DEFAULT_SCHOOL_INFO: SchoolInformation = {
 };
 
 export const DEFAULT_HEADTEACHER: HeadTeacherProfile = {
-  name: 'Mr. Jackson K. Obeng-Frimpong',
-  title: 'Headmaster',
-  salutation: 'Mr.',
+  name: 'Madam Constance Amofa',
+  title: 'Headmistress',
+  salutation: 'Madam',
   imageUrl: '',
-  tenure: 'September 2020 to Present',
-  qualification: 'M.Ed. Educational Leadership (UEW), B.Sc. Mathematics & Statistics (UCC), Dip. Ed.',
-  welcomeMessage: 'Welcome to the official online home of Ghanata Senior High School, Dodowa. For nearly nine decades, our school has remained a fortress of discipline, academic integrity, and holistic moral development. As we navigate the 21st century, our focus remains on nurturing well-rounded citizens who embody our founding motto, "Carpe Diem" (seizing every moment to achieve greatness). We invite parents, alumni, and prospective scholars to explore our programs, celebrate our students\' achievements, and partner with us in sustaining the great Ghanata legacy.',
-  email: 'headmaster@ghanatashs.edu.gh',
+  tenure: '2024 to Present',
+  qualification: '',
+  welcomeMessage: 'Welcome to the official online home of Ghanata Senior High School, Dodowa. For nearly nine decades, our school has remained a fortress of discipline, academic integrity, and holistic moral development. As we navigate the 21st century, our focus remains on nurturing well rounded citizens who embody our founding motto, "Carpe Diem" (seizing every moment to achieve greatness). We invite parents, alumni, and prospective scholars to explore our programs, celebrate our students\' achievements, and partner with us in sustaining the great Ghanata legacy.',
+  email: 'headmistress@ghanatashs.edu.gh',
   phone: '+233 (0) 30 291 0422 (Ext. 101)',
   signatureUrl: 'https://api.iconify.design/fluent-emoji-flat:pen.svg'
 };
