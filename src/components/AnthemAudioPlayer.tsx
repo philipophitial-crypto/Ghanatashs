@@ -42,33 +42,54 @@ export const AnthemAudioPlayer: React.FC = () => {
   );
 
   useEffect(() => {
-    if (customAudioUrl && customAudioUrl.length > 50 && customAudioUrl !== 'stored_in_google_cloud') {
-      setAudioSrc(customAudioUrl);
-      if (audioRef.current) {
-        audioRef.current.load();
+    let isMounted = true;
+    const resolveAudioSrc = async () => {
+      if (customAudioUrl && customAudioUrl.length > 50 && customAudioUrl !== 'stored_in_google_cloud') {
+        if (isMounted) {
+          setAudioSrc(customAudioUrl);
+          if (audioRef.current) audioRef.current.load();
+        }
+        return;
       }
-    } else if (customAudioUrl === 'stored_in_google_cloud') {
-      import('../services/firebaseClient').then(({ loadAudioFromFirestore }) => {
-        loadAudioFromFirestore().then(res => {
-          if (res?.audioUrl) {
-            setAudioSrc(res.audioUrl);
+      
+      try {
+        const { getPersistentMedia } = await import('../utils/mediaStorage');
+        const cached = await getPersistentMedia('anthem_audio');
+        if (cached && cached.length > 50 && cached !== 'stored_in_google_cloud') {
+          if (isMounted) {
+            setAudioSrc(cached);
             if (audioRef.current) audioRef.current.load();
           }
-        });
-      });
-    } else {
-      import('../utils/mediaStorage').then(({ getPersistentMedia }) => {
-        getPersistentMedia('anthem_audio').then(cachedAudio => {
-          if (cachedAudio) {
-            setAudioSrc(cachedAudio);
-            if (audioRef.current) audioRef.current.load();
-          } else {
-            const defaultUrl = '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav';
-            setAudioSrc(defaultUrl);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      if (customAudioUrl === 'stored_in_google_cloud') {
+        try {
+          const { loadAudioFromFirestore, getIsQuotaExhausted } = await import('../services/firebaseClient');
+          if (!getIsQuotaExhausted()) {
+            const res = await loadAudioFromFirestore();
+            if (res?.audioUrl && isMounted) {
+              setAudioSrc(res.audioUrl);
+              if (audioRef.current) audioRef.current.load();
+              return;
+            }
           }
-        });
-      });
-    }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (isMounted) {
+        setAudioSrc('/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav');
+        if (audioRef.current) audioRef.current.load();
+      }
+    };
+
+    resolveAudioSrc();
+    return () => { isMounted = false; };
   }, [customAudioUrl]);
 
   const togglePlay = () => {

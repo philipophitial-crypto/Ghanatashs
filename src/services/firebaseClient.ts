@@ -420,7 +420,6 @@ export async function saveSchoolDataToFirebase(data: {
     let safeAnthem = data.schoolInfo?.anthem ? { ...data.schoolInfo.anthem } : null;
     if (safeAnthem?.audioUrl && !safeAnthem.audioUrl.startsWith('/') && !safeAnthem.audioUrl.startsWith('stored_in_google_cloud')) {
       await saveAudioToFirestore(safeAnthem.audioUrl, safeAnthem.audioFileName);
-      safeAnthem.audioUrl = 'stored_in_google_cloud';
     }
 
     // 2. Prepare logo: if data URL or custom upload, store in dedicated logo media chunks

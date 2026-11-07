@@ -4,12 +4,37 @@ import { SchoolCrest } from './SchoolCrest';
 import { Quote, Award, Sparkles, HeartHandshake, UserX } from 'lucide-react';
 
 export const FounderSection: React.FC = () => {
-  const { founder, setActiveTab } = useSchool();
+  const { founder } = useSchool();
   const [imgError, setImgError] = useState(false);
+  const [resolvedImage, setResolvedImage] = useState<string>('');
+
+  const rawImage = founder.imageUrl;
 
   useEffect(() => {
+    let isMounted = true;
     setImgError(false);
-  }, [founder.imageUrl]);
+
+    if (rawImage && rawImage.length > 20 && rawImage !== 'stored_in_google_cloud') {
+      setResolvedImage(rawImage);
+      return;
+    }
+
+    import('../utils/mediaStorage').then(({ getPersistentMedia }) => {
+      getPersistentMedia('founder_portrait').then(cached => {
+        if (isMounted) {
+          if (cached && cached.length > 20 && cached !== 'stored_in_google_cloud') {
+            setResolvedImage(cached);
+          } else {
+            setResolvedImage('');
+          }
+        }
+      });
+    }).catch(() => {
+      if (isMounted) setResolvedImage('');
+    });
+
+    return () => { isMounted = false; };
+  }, [rawImage]);
 
   return (
     <section className="py-20 bg-linear-to-b from-stone-900 via-stone-900 to-stone-950 text-white relative overflow-hidden">
@@ -43,9 +68,9 @@ export const FounderSection: React.FC = () => {
               <div className="absolute -inset-2 bg-gradient-to-r from-yellow-400 via-yellow-200 to-[#14532d] rounded-2xl opacity-75 blur-xs group-hover:opacity-100 transition-opacity" />
               
               <div className="relative w-64 h-80 sm:w-72 sm:h-96 rounded-2xl overflow-hidden bg-stone-900 border-2 border-yellow-400 shadow-2xl flex items-center justify-center">
-                {!imgError && founder.imageUrl ? (
+                {!imgError && resolvedImage ? (
                   <img
-                    src={founder.imageUrl}
+                    src={resolvedImage}
                     alt={founder.name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105"

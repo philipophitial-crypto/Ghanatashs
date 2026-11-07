@@ -254,20 +254,67 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadSchoolDataFromSupabase().then(supabaseData => {
       if (supabaseData) {
         if (supabaseData.schoolInfo) {
-          setSchoolInfo((prev: SchoolInfo) => ({ ...prev, ...sanitizeSchoolInfo(supabaseData.schoolInfo) }));
-          if (supabaseData.schoolInfo.logoUrl) setPersistentMedia('school_logo', supabaseData.schoolInfo.logoUrl);
-          if (supabaseData.schoolInfo.anthem?.audioUrl) {
-            setPersistentMedia('anthem_audio', supabaseData.schoolInfo.anthem.audioUrl);
-            if (supabaseData.schoolInfo.anthem.audioFileName) setPersistentMedia('anthem_filename', supabaseData.schoolInfo.anthem.audioFileName);
+          const incomingAnthem = supabaseData.schoolInfo.anthem;
+          const isCloudPlaceholder = incomingAnthem?.audioUrl === 'stored_in_google_cloud';
+          
+          if (isCloudPlaceholder) {
+            getPersistentMedia('anthem_audio').then(cachedAudio => {
+              setSchoolInfo((prev: SchoolInfo) => ({
+                ...prev,
+                ...sanitizeSchoolInfo(supabaseData.schoolInfo),
+                anthem: {
+                  ...(prev.anthem || DEFAULT_SCHOOL_INFO.anthem),
+                  ...(incomingAnthem || {}),
+                  audioUrl: cachedAudio || prev.anthem?.audioUrl || '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav'
+                }
+              }));
+            });
+          } else {
+            const logoUrl = supabaseData.schoolInfo.logoUrl;
+            if (logoUrl && logoUrl !== 'stored_in_google_cloud') {
+              setPersistentMedia('school_logo', logoUrl);
+            } else if (logoUrl === 'stored_in_google_cloud') {
+              getPersistentMedia('school_logo').then(cachedLogo => {
+                if (cachedLogo) {
+                  setSchoolInfo((prev: SchoolInfo) => ({ ...prev, logoUrl: cachedLogo }));
+                }
+              });
+            }
+            if (supabaseData.schoolInfo.anthem?.audioUrl && supabaseData.schoolInfo.anthem.audioUrl !== 'stored_in_google_cloud') {
+              setPersistentMedia('anthem_audio', supabaseData.schoolInfo.anthem.audioUrl);
+              if (supabaseData.schoolInfo.anthem.audioFileName) setPersistentMedia('anthem_filename', supabaseData.schoolInfo.anthem.audioFileName);
+            }
           }
         }
         if (supabaseData.founder) {
-          setFounder((prev: FounderProfile) => ({ ...prev, ...supabaseData.founder }));
-          if (supabaseData.founder.imageUrl) setPersistentMedia('founder_portrait', supabaseData.founder.imageUrl);
+          const founderImg = supabaseData.founder.imageUrl;
+          if (founderImg && founderImg !== 'stored_in_google_cloud') {
+            setFounder((prev: FounderProfile) => ({ ...prev, ...supabaseData.founder }));
+            setPersistentMedia('founder_portrait', founderImg);
+          } else {
+            getPersistentMedia('founder_portrait').then(cached => {
+              setFounder((prev: FounderProfile) => ({
+                ...prev,
+                ...supabaseData.founder,
+                imageUrl: (cached && cached !== 'stored_in_google_cloud') ? cached : (prev.imageUrl || DEFAULT_FOUNDER.imageUrl)
+              }));
+            });
+          }
         }
         if (supabaseData.headTeacher) {
-          setHeadTeacher((prev: HeadTeacherProfile) => sanitizeHeadTeacher({ ...prev, ...supabaseData.headTeacher }));
-          if (supabaseData.headTeacher.imageUrl) setPersistentMedia('headteacher_photo', supabaseData.headTeacher.imageUrl);
+          const htImg = supabaseData.headTeacher.imageUrl;
+          if (htImg && htImg !== 'stored_in_google_cloud') {
+            setHeadTeacher((prev: HeadTeacherProfile) => sanitizeHeadTeacher({ ...prev, ...supabaseData.headTeacher }));
+            setPersistentMedia('headteacher_photo', htImg);
+          } else {
+            getPersistentMedia('headteacher_photo').then(cached => {
+              setHeadTeacher((prev: HeadTeacherProfile) => sanitizeHeadTeacher({
+                ...prev,
+                ...supabaseData.headTeacher,
+                imageUrl: (cached && cached !== 'stored_in_google_cloud') ? cached : (prev.imageUrl || DEFAULT_HEADTEACHER.imageUrl)
+              }));
+            });
+          }
         }
         if (supabaseData.students && supabaseData.students.length > 0) setStudents(calculateClassPositions(supabaseData.students));
         if (supabaseData.ptaNotices !== undefined && Array.isArray(supabaseData.ptaNotices)) setPtaNotices(supabaseData.ptaNotices);
@@ -295,7 +342,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
               }));
               if (remoteData.schoolInfo.logoUrl) setPersistentMedia('school_logo', remoteData.schoolInfo.logoUrl);
-              if (remoteData.schoolInfo.anthem?.audioUrl) {
+              if (remoteData.schoolInfo.anthem?.audioUrl && remoteData.schoolInfo.anthem.audioUrl !== 'stored_in_google_cloud') {
                 setPersistentMedia('anthem_audio', remoteData.schoolInfo.anthem.audioUrl);
                 if (remoteData.schoolInfo.anthem.audioFileName) setPersistentMedia('anthem_filename', remoteData.schoolInfo.anthem.audioFileName);
               }
@@ -329,21 +376,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (remoteData.schoolInfo) {
           setSchoolInfo((prev: SchoolInfo) => {
             const sanitized = sanitizeSchoolInfo(remoteData.schoolInfo);
-            const mergedAnthem = remoteData.schoolInfo.anthem
+            const incomingAnthem = remoteData.schoolInfo.anthem;
+            const isPlaceholder = incomingAnthem?.audioUrl === 'stored_in_google_cloud';
+
+            const mergedAnthem = incomingAnthem
               ? {
                   ...(prev.anthem || DEFAULT_SCHOOL_INFO.anthem),
-                  ...remoteData.schoolInfo.anthem,
-                  stanzas: (remoteData.schoolInfo.anthem.stanzas && remoteData.schoolInfo.anthem.stanzas.length > 0)
-                    ? remoteData.schoolInfo.anthem.stanzas
+                  ...incomingAnthem,
+                  audioUrl: isPlaceholder ? prev.anthem?.audioUrl : (incomingAnthem.audioUrl || prev.anthem?.audioUrl),
+                  stanzas: (incomingAnthem.stanzas && incomingAnthem.stanzas.length > 0)
+                    ? incomingAnthem.stanzas
                     : (prev.anthem?.stanzas || DEFAULT_SCHOOL_INFO.anthem.stanzas),
-                  title: remoteData.schoolInfo.anthem.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
+                  title: incomingAnthem.title || prev.anthem?.title || DEFAULT_SCHOOL_INFO.anthem.title
                 }
               : prev.anthem;
 
-            if (remoteData.schoolInfo.anthem?.audioUrl) {
-              setPersistentMedia('anthem_audio', remoteData.schoolInfo.anthem.audioUrl);
-              if (remoteData.schoolInfo.anthem.audioFileName) {
-                setPersistentMedia('anthem_filename', remoteData.schoolInfo.anthem.audioFileName);
+            if (incomingAnthem?.audioUrl && incomingAnthem.audioUrl !== 'stored_in_google_cloud') {
+              setPersistentMedia('anthem_audio', incomingAnthem.audioUrl);
+              if (incomingAnthem.audioFileName) {
+                setPersistentMedia('anthem_filename', incomingAnthem.audioFileName);
               }
             }
             if (remoteData.schoolInfo.logoUrl) {

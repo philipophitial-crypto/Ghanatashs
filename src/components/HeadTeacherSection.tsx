@@ -4,12 +4,37 @@ import { SchoolCrest } from './SchoolCrest';
 import { Settings, Edit3, Award, Quote, CheckCircle2, UserX } from 'lucide-react';
 
 export const HeadTeacherSection: React.FC = () => {
-  const { headTeacher, setActiveTab } = useSchool();
+  const { headTeacher } = useSchool();
   const [imgError, setImgError] = useState(false);
+  const [resolvedImage, setResolvedImage] = useState<string>('');
+
+  const rawImage = headTeacher.imageUrl;
 
   useEffect(() => {
+    let isMounted = true;
     setImgError(false);
-  }, [headTeacher.imageUrl]);
+
+    if (rawImage && rawImage.length > 20 && rawImage !== 'stored_in_google_cloud') {
+      setResolvedImage(rawImage);
+      return;
+    }
+
+    import('../utils/mediaStorage').then(({ getPersistentMedia }) => {
+      getPersistentMedia('headteacher_photo').then(cached => {
+        if (isMounted) {
+          if (cached && cached.length > 20 && cached !== 'stored_in_google_cloud') {
+            setResolvedImage(cached);
+          } else {
+            setResolvedImage('');
+          }
+        }
+      });
+    }).catch(() => {
+      if (isMounted) setResolvedImage('');
+    });
+
+    return () => { isMounted = false; };
+  }, [rawImage]);
 
   return (
     <section id="headteacher-section" className="py-20 bg-stone-50 border-b border-stone-200">
@@ -39,9 +64,9 @@ export const HeadTeacherSection: React.FC = () => {
             <div className="lg:col-span-4 flex flex-col items-center text-center">
               <div className="relative group">
                 <div className="w-56 h-72 sm:w-64 sm:h-80 rounded-2xl overflow-hidden bg-stone-100 border-4 border-[#14532d] shadow-xl relative flex items-center justify-center">
-                  {!imgError && headTeacher.imageUrl ? (
+                  {!imgError && resolvedImage ? (
                     <img
-                      src={headTeacher.imageUrl}
+                      src={resolvedImage}
                       alt={headTeacher.name}
                       className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
                       onError={() => setImgError(true)}

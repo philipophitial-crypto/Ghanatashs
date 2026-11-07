@@ -14,6 +14,7 @@ export const SchoolCrest: React.FC<SchoolCrestProps> = ({
 }) => {
   const { schoolInfo } = useSchool();
   const [imgError, setImgError] = useState(false);
+  const [resolvedLogo, setResolvedLogo] = useState<string>('/logo.png');
 
   const sizeMap = {
     sm: 'w-10 h-12',
@@ -22,13 +23,35 @@ export const SchoolCrest: React.FC<SchoolCrestProps> = ({
     xl: 'w-32 h-36'
   };
 
-  // Official school crest logo
-  const logoSource = schoolInfo?.logoUrl || '/logo.png';
+  const rawLogo = schoolInfo?.logoUrl;
 
-  // Reset imgError whenever logoSource updates so uploaded logos manifest immediately
   useEffect(() => {
+    let isMounted = true;
     setImgError(false);
-  }, [logoSource]);
+
+    if (rawLogo && rawLogo.length > 20 && rawLogo !== 'stored_in_google_cloud') {
+      setResolvedLogo(rawLogo);
+      return;
+    }
+
+    import('../utils/mediaStorage').then(({ getPersistentMedia }) => {
+      getPersistentMedia('school_logo').then(cached => {
+        if (isMounted) {
+          if (cached && cached.length > 20 && cached !== 'stored_in_google_cloud') {
+            setResolvedLogo(cached);
+          } else {
+            setResolvedLogo('/logo.png');
+          }
+        }
+      });
+    }).catch(() => {
+      if (isMounted) setResolvedLogo('/logo.png');
+    });
+
+    return () => { isMounted = false; };
+  }, [rawLogo]);
+
+  const logoSource = resolvedLogo;
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>

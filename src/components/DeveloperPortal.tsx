@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { SchoolCrest } from './SchoolCrest';
 import { 
@@ -54,7 +54,7 @@ import {
   saveLogoToFirestore,
   saveAudioToFirestore
 } from '../services/firebaseClient';
-import { setPersistentMedia, removePersistentMedia } from '../utils/mediaStorage';
+import { setPersistentMedia, getPersistentMedia, removePersistentMedia } from '../utils/mediaStorage';
 import { 
   getSupabaseConfig, 
   setSupabaseConfig, 
@@ -252,13 +252,23 @@ export const DeveloperPortal: React.FC = () => {
         return prev;
       });
     }
+    const rawImg = headTeacher.imageUrl;
+    if (rawImg && rawImg.length > 20 && rawImg !== 'stored_in_google_cloud') {
+      setHtForm(prev => ({ ...prev, imageUrl: rawImg }));
+    } else {
+      getPersistentMedia('headteacher_photo').then(cached => {
+        if (cached && cached.length > 20 && cached !== 'stored_in_google_cloud') {
+          setHtForm(prev => ({ ...prev, imageUrl: cached }));
+        }
+      });
+    }
   }, [headTeacher]);
 
   // School Identity form state
   const [identityForm, setIdentityForm] = useState({
     name: schoolInfo.name,
     shortName: schoolInfo.shortName,
-    logoUrl: schoolInfo.logoUrl || '/logo.png',
+    logoUrl: (schoolInfo.logoUrl && schoolInfo.logoUrl !== 'stored_in_google_cloud') ? schoolInfo.logoUrl : '/logo.png',
     mottoLatin: schoolInfo.mottoLatin,
     mottoEnglish: schoolInfo.mottoEnglish,
     secondaryMotto: schoolInfo.secondaryMotto,
@@ -268,6 +278,19 @@ export const DeveloperPortal: React.FC = () => {
     established: schoolInfo.established,
     coreValues: [...schoolInfo.coreValues]
   });
+
+  React.useEffect(() => {
+    const rawLogo = schoolInfo.logoUrl;
+    if (rawLogo && rawLogo.length > 20 && rawLogo !== 'stored_in_google_cloud') {
+      setIdentityForm(prev => ({ ...prev, logoUrl: rawLogo }));
+    } else {
+      getPersistentMedia('school_logo').then(cached => {
+        if (cached && cached.length > 20 && cached !== 'stored_in_google_cloud') {
+          setIdentityForm(prev => ({ ...prev, logoUrl: cached }));
+        }
+      });
+    }
+  }, [schoolInfo.logoUrl]);
 
   // Contact Information form state
   const [contactForm, setContactForm] = useState({
@@ -286,7 +309,23 @@ export const DeveloperPortal: React.FC = () => {
   });
 
   // Founder form state
-  const [founderForm, setFounderForm] = useState<FounderProfile>({ ...founder });
+  const [founderForm, setFounderForm] = useState<FounderProfile>({
+    ...founder,
+    imageUrl: (founder.imageUrl && founder.imageUrl !== 'stored_in_google_cloud') ? founder.imageUrl : ''
+  });
+
+  React.useEffect(() => {
+    const rawImg = founder.imageUrl;
+    if (rawImg && rawImg.length > 20 && rawImg !== 'stored_in_google_cloud') {
+      setFounderForm(prev => ({ ...prev, imageUrl: rawImg }));
+    } else {
+      getPersistentMedia('founder_portrait').then(cached => {
+        if (cached && cached.length > 20 && cached !== 'stored_in_google_cloud') {
+          setFounderForm(prev => ({ ...prev, imageUrl: cached }));
+        }
+      });
+    }
+  }, [founder.imageUrl]);
 
   // History form state
   const [historyForm, setHistoryForm] = useState<string[]>([...schoolInfo.briefHistory]);
@@ -295,12 +334,35 @@ export const DeveloperPortal: React.FC = () => {
   const [anthemForm, setAnthemForm] = useState({
     title: schoolInfo.anthem?.title || 'Official Ghanata School Anthem',
     stanzasText: (schoolInfo.anthem?.stanzas || []).join('\n\n'),
-    audioUrl: schoolInfo.anthem?.audioUrl || '',
+    audioUrl: (schoolInfo.anthem?.audioUrl && schoolInfo.anthem.audioUrl !== 'stored_in_google_cloud') ? schoolInfo.anthem.audioUrl : '',
     audioFileName: schoolInfo.anthem?.audioFileName || '',
     customFanfareNote: schoolInfo.anthem?.customFanfareNote || ''
   });
   const [isAnthemAudioPlaying, setIsAnthemAudioPlaying] = useState(false);
   const portalAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const rawUrl = schoolInfo.anthem?.audioUrl;
+    if (rawUrl && rawUrl.length > 50 && rawUrl !== 'stored_in_google_cloud') {
+      setAnthemForm(prev => ({
+        ...prev,
+        title: schoolInfo.anthem?.title || prev.title,
+        stanzasText: (schoolInfo.anthem?.stanzas || []).join('\n\n'),
+        audioUrl: rawUrl,
+        audioFileName: schoolInfo.anthem?.audioFileName || prev.audioFileName
+      }));
+    } else {
+      getPersistentMedia('anthem_audio').then(cached => {
+        setAnthemForm(prev => ({
+          ...prev,
+          title: schoolInfo.anthem?.title || prev.title,
+          stanzasText: (schoolInfo.anthem?.stanzas || []).join('\n\n'),
+          audioUrl: (cached && cached !== 'stored_in_google_cloud') ? cached : '',
+          audioFileName: schoolInfo.anthem?.audioFileName || prev.audioFileName
+        }));
+      });
+    }
+  }, [schoolInfo.anthem]);
 
   // Student creation state
   const [isAddingStudent, setIsAddingStudent] = useState(false);
@@ -1801,7 +1863,7 @@ export const DeveloperPortal: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <audio
                       ref={portalAudioRef}
-                      src={anthemForm.audioUrl || '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav'}
+                      src={(anthemForm.audioUrl && anthemForm.audioUrl !== 'stored_in_google_cloud') ? anthemForm.audioUrl : '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav'}
                       onEnded={() => setIsAnthemAudioPlaying(false)}
                     />
                     <button
@@ -1823,7 +1885,7 @@ export const DeveloperPortal: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <a
-                      href={anthemForm.audioUrl || '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav'}
+                      href={(anthemForm.audioUrl && anthemForm.audioUrl !== 'stored_in_google_cloud') ? anthemForm.audioUrl : '/audio/Ghanata_Senior_High_School_Anthem_Fanfare.wav'}
                       download={anthemForm.audioFileName || 'Ghanata_Senior_High_School_Anthem_Fanfare.wav'}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs font-medium cursor-pointer"
                     >
